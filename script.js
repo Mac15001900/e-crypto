@@ -2,6 +2,7 @@ let myName = '';
 let team = '';
 let code = [];
 let members = [];
+let switchingDisabled = false;
 //let gameState = {received = false, teams={}, codeDrawn=false, currentTeam=''};
 let gameState = {'received': false};
 
@@ -22,7 +23,8 @@ const DOM = {
   form: document.querySelector('#form'),
   codeButton: document.querySelector('#codeButton'),
   redButton: document.querySelector('#redButton'),
-  blueButton: document.querySelector('#blueButton')
+  blueButton: document.querySelector('#blueButton'),
+  resetButton: document.querySelector('#resetButton'),
 };
 
 
@@ -138,20 +140,33 @@ function randomiseCode() {
 
 //Switching team
 redButton.addEventListener("click", function () {
-  team = 'R';
-  redButton.style  = "visibility : hidden";
-  blueButton.style = "visibility : visible";
-  codeButton.style = "visibility : visible";
-  //TODO update words
+  switchToTeam('R');
 })
 
 blueButton.addEventListener("click", function () {
-  team = 'B';
-  redButton.style  = "visibility : visible";
-  blueButton.style = "visibility : hidden";
-  codeButton.style = "visibility : visible";
-  //TODO update words
+  switchToTeam('B');
 })
+
+function switchToTeam(newTeam) {
+  team = newTeam;
+  codeButton.style.display = 'block';
+  resetButton.style.display = 'block';
+  let newButton;
+  if(newTeam === 'R'){
+    redButton.style.display  = 'none';
+    newButton = blueButton;
+  } else if(newTeam === 'B'){
+    blueButton.style.display  = 'none';
+    newButton = redButton;
+  }else{
+    alert('Invalid team '+newTeam);
+    return;
+  }
+  newButton.style.display = 'block';
+  //newButton.disabled = true;
+  //setTimeout(function(){newButton.disabled = false;}, 5000)
+
+}
 
 
 //Sending messages

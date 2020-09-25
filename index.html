@@ -101,6 +101,16 @@
       background:linear-gradient(to bottom, #68a54b 5%, #74ad5a 100%);
       background-color:#68a54b;
     }
+    .button.white{
+      box-shadow:inset 0px 0px 15px 3px #ffffff;
+      background:linear-gradient(to bottom, #ffffff 5%, #f6f6f6 100%);
+      background-color:#ffffff;
+      color:#666666;
+    }
+    .button.white:hover{
+      background:linear-gradient(to bottom, #f6f6f6 5%, #ffffff 100%);
+      background-color:#f6f6f6; 
+    }
 
        
 
@@ -120,15 +130,23 @@
         <td><input id="text-input" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
         <td><input id="text-input2" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
         <td><input id="text-input3" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
-        <td><input class="message-form__button button green" value="Wyślij" type="submit"/></td>
+        <!-- <td><input class="message-form__button button green" value="Wyślij" type="submit"/></td> -->
       </tr>
     </table>
+    <input class="message-form__button button green" value="Wyślij" type="submit"/>
   </form>
   <hr>
 
-  <a href="#" id="codeButton" class="button green" style="visibility:hidden">Dobierz kod</a> 
-  <a href="#" id="redButton" class="button red">Dołącz do czerwonych</a>
-  <a href="#" id="blueButton" class="button blue">Dołącz do niebieskich</a>
+  <a href="#" id="codeButton" class="button green" style="display: none">Dobierz kod</a>
+  <table style="width: 0px">
+    <tr>
+      <td><a href="#" id="redButton" class="button red">Dołącz do czerwonych</a></td>
+      <td><a href="#" id="blueButton" class="button blue">Dołącz do niebieskich</a></td>
+      <td><a href="#" id="resetButton" class="button white" style="display: none">Zacznij nową grę</a></td>
+    </tr>
+  </table> 
+  
+  
 
   <script src="./script.js"></script>
 </body>

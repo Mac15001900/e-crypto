@@ -41,7 +41,7 @@
       position: relative;
     }
 
-    .message-form {
+    message-form {
       display: flex;
       flex-shrink: 0;
     }
@@ -53,20 +53,83 @@
     }
     .message-form__button {
       margin: 10px;
+    }    
+
+    .button {
+      border-radius:10px;
+      border:1px solid #4e6096;
+      width: 200px;
+      display:inline-block;
+      cursor:pointer;
+      color:#ffffff;
+      font-family:Arial;
+      font-size:19px;
+      padding:8px 16px;
+      text-decoration:none;
+      text-shadow:0px 1px 0px #283966;
+      margin: 8px;
+    }    
+    .button:active {
+      position:relative;
+      top:1px;
     }
+
+    .button.blue{
+      box-shadow: 0px 0px 0px 2px #9fb4f2;
+      background:linear-gradient(to bottom, #7892c2 5%, #476e9e 100%);
+      background-color:#7892c2;
+    }
+    .button.blue:hover {
+      background:linear-gradient(to bottom, #476e9e 5%, #7892c2 100%);
+      background-color:#476e9e;
+    }
+    .button.red{
+      box-shadow: 0px 0px 0px 2px #cf866c;
+      background:linear-gradient(to bottom, #d0451b 5%, #bc3315 100%);
+      background-color:#d0451b;
+    }
+    .button.red:hover {
+      background:linear-gradient(to bottom, #bc3315 5%, #d0451b 100%);
+      background-color:#bc3315;
+    }
+    .button.green{
+      box-shadow:inset 0px 0px 15px 3px #9acc85;
+      background:linear-gradient(to bottom, #74ad5a 5%, #68a54b 100%);
+      background-color:#74ad5a;
+    }
+    .button.green:hover {
+      background:linear-gradient(to bottom, #68a54b 5%, #74ad5a 100%);
+      background-color:#68a54b;
+    }
+
+       
+
   </style>
 </head>
 <body>
-  <div class="members-count">-</div>
-  <div class="members-list">-</div>
-  <div class="messages messages-day"></div>
-  <div class="messages messages-faction"></div>
-  <div class="messages messages-manitou"></div>
-  <form class="message-form" onsubmit="return false;">
-    <input class="message-form_main_input" placeholder="Type a message.." type="text"/>
-    <input class="message-form_secondary_input" placeholder="recipient" type="text"/>
-    <input class="message-form__button" value="Send" type="submit"/>
+  <div id="members-count" class="members-count">-</div>
+  <div id="members-list" class="members-list">-</div>
+  <div id="messages" class="messages"></div>
+  <form id="form" class="message-form" onsubmit="return false;">
+    <table style="border-spacing: 20px 2px;">
+      <tr>
+        <td><div id="decs1">D1</div></td>
+        <td><div id="decs2">D2</div></td>
+        <td><div id="decs3">D3</div></td>
+      </tr><tr>
+        <td><input id="text-input" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
+        <td><input id="text-input2" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
+        <td><input id="text-input3" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
+        <td><input class="message-form__button button green" value="Wyślij" type="submit"/></td>
+      </tr>
+    </table>
   </form>
+  <hr>
+
+  <a href="#" id="codeButton" class="button green" style="visibility:hidden">Dobierz kod</a> 
+  <a href="#" id="redButton" class="button red">Dołącz do czerwonych</a>
+  <a href="#" id="blueButton" class="button blue">Dołącz do niebieskich</a>
+
   <script src="./script.js"></script>
 </body>
 </html>

@@ -1,12 +1,15 @@
 let myName = '';
 let team = '';
+let nextTeam = '';
 let code = [];
 let members = [];
-let switchingDisabled = false;
 //let gameState = {received = false, teams={}, codeDrawn=false, currentTeam=''};
 let gameState = {'received': false};
+//let s = JSON.parse()
 
 const NUMER_OF_WORDS = 4;
+const words = ["Lorem","ipsum","dolor","sit","amet","consectetur","adipiscing","elit","sed","do","eiusmod","tempor","incididunt","ut","labore","et","dolore","magna","aliqua","Porttitor","rhoncus","dolor","purus","non","enim","praesent","elementum","Adipiscing","enim","eu","turpis","egestas","pretium","aenean","pharetra","Odio","pellentesque","diam","volutpat","commodo","Varius","duis","at","consectetur","lorem","Sit","amet","est","placerat","in","egestas","Amet","mauris","commodo","quis","imperdiet","massa","tincidunt","nunc","pulvinar","sapien","Velit","scelerisque","in","dictum","non","consectetur","a","erat","nam","at"];
+
 
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 const drone = new ScaleDrone(CHANNEL_ID, {
@@ -25,6 +28,7 @@ const DOM = {
   redButton: document.querySelector('#redButton'),
   blueButton: document.querySelector('#blueButton'),
   resetButton: document.querySelector('#resetButton'),
+  descriptions: [document.querySelector('#decs1'), document.querySelector('#decs2'), document.querySelector('#decs3')],
 };
 
 
@@ -42,10 +46,10 @@ function getRandomName() {
 }
 
 function getUsername() {
-  //var name = prompt("Enter your username","");
-  name = getRandomName();
+  //var name = prompt(s.enter_username,"");
+  var name = getRandomName();
   while(!name){
-    var name = prompt("Enter your username (it can't be empty)","");
+    var name = prompt(s.enter_username_non_empty,"");
   }
   myName = name;
   return(name);
@@ -73,13 +77,18 @@ function pickTeam(members) {
   }
 }
 
+function init() {
+  translate();
+  updateDescriptions();
+}
+
 
 //Handle displaying things
 function createMemberElement(member) {
   const { name, color } = member.clientData;
   const el = document.createElement('div');
   var content = name;
-  if(name === myName) content += " (you)";
+  if(name === myName) content += " " + s.you;
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
   el.style.color = color;
@@ -87,7 +96,7 @@ function createMemberElement(member) {
 }
  
 function updateMembersDOM() {
-  DOM.membersCount.innerText = `${members.length} users in room:`;
+  DOM.membersCount.innerText = members.length+' '+s.player_count;
   DOM.membersList.innerHTML = '';
   members.forEach(member =>
    DOM.membersList.appendChild(createMemberElement(member))
@@ -116,11 +125,11 @@ function addMessageToListDOM(text, member) {
 codeButton.addEventListener("click", function () {
   if(code.length === 0){
     randomiseCode();
-    addMessageToListDOM('--Kod to: '+code+"--");
-    codeButton.text = 'Ujawnij kod';
+    addMessageToListDOM(s.your_code_is + ' ' + code + "--");
+    codeButton.text = s.reveal_code;
   } else{
     sendMessage('code', code);
-    codeButton.text = 'Dobierz kod';
+    codeButton.text = s.draw_code;
     code = [];
   }
   
@@ -148,7 +157,16 @@ blueButton.addEventListener("click", function () {
 })
 
 function switchToTeam(newTeam) {
-  team = newTeam;
+  if(!team) {
+    team = newTeam;
+    nextTeam = newTeam;
+    sendMessage('teamSwitch',newTeam);
+  }
+  else {
+    nextTeam = newTeam;
+    alert(s.switch_after_game);
+  }
+  nextTeam = newTeam;
   codeButton.style.display = 'block';
   resetButton.style.display = 'block';
   let newButton;
@@ -166,6 +184,18 @@ function switchToTeam(newTeam) {
   //newButton.disabled = true;
   //setTimeout(function(){newButton.disabled = false;}, 5000)
 
+}
+
+function updateDescriptions(codeWords) {
+  if(!codeWords){
+    DOM.descriptions[0].innerHTML = s.guess_for + ' A';
+    DOM.descriptions[1].innerHTML = s.guess_for + ' B';
+    DOM.descriptions[2].innerHTML = s.guess_for + ' C';
+  } else {
+    DOM.descriptions[0].innerHTML = s.hint_for + ' ' + codeWords[0];
+    DOM.descriptions[1].innerHTML = s.hint_for + ' ' + codeWords[1];
+    DOM.descriptions[2].innerHTML = s.hint_for + ' ' + codeWords[2];
+  }
 }
 
 
@@ -197,6 +227,24 @@ function sendMessage(type, content) {
   }); 
 }
 
+//Translate HTML elements
+function translate() {
+  var allDom = document.getElementsByTagName("*");
+    for(var i =0; i < allDom.length; i++){
+      var elem = allDom[i]; 
+      var key = elem.innerHTML;
+      if (elem.innerHTML.substring(0,2) === "s.") {
+        elem.innerHTML = s[elem.innerHTML.substring(2)];
+      } else if (elem.value && elem.value.substring(0,2) === "s.") {
+        elem.value = s[elem.value.substring(2)];
+      } else if (elem.placeholder && elem.placeholder.substring(0,2) === "s.") {
+        elem.placeholder = s[elem.placeholder.substring(2)];
+      } 
+    }
+}
+
+init();
+
 //Room connection
 drone.on('open', error => {
 	 if (error) {
@@ -216,10 +264,7 @@ drone.on('open', error => {
 	room.on('members', m => {
   	members = m;
     if(members.length === 1) {
-      //First to enter the room; initialise the game
-      team = 'red';
-      gameState.teams[myName] = 'red';
-      gameState.currentTeam = Math.random()<0.5 ? 'red' : 'blue';
+      //First to enter the room; initialise the game (TODO?)
       gameState.received = true;
     }
   	updateMembersDOM(); 
@@ -242,19 +287,22 @@ drone.on('open', error => {
 	});
 
 	room.on('data', (data, member) => {
-	  if (member) {
+	  console.log(data);
+    if (member) {
       switch(data.type){
         case 'general':
           addMessageToListDOM(data.content, member); 
-          console.log(data);
           break;
         case 'hint':
           addMessageToListDOM(data.content, member); 
-          console.log(data);
           break;
         case 'code':
           addMessageToListDOM(data.content, member); 
-          console.log(data);
+          break;
+        case 'teamSwitch':
+          if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 
+          else if(data.content === 'B') addMessageToListDOM(s.joins_blue, member); 
+          else alert('Invalid team switch to '+ data.content);          
           break;
         case 'teamsUpdate': 
           teams = data.content; //TODO update teams display
@@ -269,8 +317,30 @@ drone.on('open', error => {
       }
 
 	  } else {
-	    // Message is from server
+	    addMessageToListDOM('Server: '+data.content); 
 	 }
 });
 
 });
+
+
+/*
+//Load a file, from https://www.codeproject.com/Tips/1165561/How-to-create-a-multilingual-application-using-Jav
+function loadFile(path) {
+  var fileHandle = new XMLHttpRequest();
+  var res;
+  //load content data 
+  fileHandle.open("GET", path, false);
+  fileHandle.onreadystatechange = function () {
+    if(fileHandle.readyState === 4){
+      if(fileHandle.status === 200 || fileHandle.status == 0) {
+        res = fileHandle.responseText;        
+      }
+    }
+  }
+  fileHandle.send();
+  return(res);
+}
+
+console.log(loadFile('en-strings.json'));*/
+

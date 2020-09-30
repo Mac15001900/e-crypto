@@ -127,27 +127,33 @@
         <td><div id="decs2">D2</div></td>
         <td><div id="decs3">D3</div></td>
       </tr><tr>
-        <td><input id="text-input" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
-        <td><input id="text-input2" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
-        <td><input id="text-input3" class="message-form_main_input" placeholder="Tu wpisz podpowiedź" type="text" disabled/></td>
+        <td><input id="text-input" class="message-form_main_input" placeholder="s.enter_guess_here" type="text" disabled/></td>
+        <td><input id="text-input2" class="message-form_main_input" placeholder="s.enter_guess_here" type="text" disabled/></td>
+        <td><input id="text-input3" class="message-form_main_input" placeholder="s.enter_guess_here" type="text" disabled/></td>
         <!-- <td><input class="message-form__button button green" value="Wyślij" type="submit"/></td> -->
       </tr>
     </table>
-    <input class="message-form__button button green" value="Wyślij" type="submit"/>
+    <table>
+      <tr>
+        <td><input class="button green" value="s.send" type="submit"/></td>
+        <td><input class="modeSwapButton button green" value="s.hint_mode" type="submit"/></td>
+      </tr>
+    </table>
+    
   </form>
   <hr>
 
-  <a href="#" id="codeButton" class="button green" style="display: none">Dobierz kod</a>
+  <a href="#" id="codeButton" class="button green" style="display: none">s.draw_code</a>
   <table style="width: 0px">
     <tr>
-      <td><a href="#" id="redButton" class="button red">Dołącz do czerwonych</a></td>
-      <td><a href="#" id="blueButton" class="button blue">Dołącz do niebieskich</a></td>
-      <td><a href="#" id="resetButton" class="button white" style="display: none">Zacznij nową grę</a></td>
+      <td><a href="#" id="redButton" class="button red">s.join_red</a></td>
+      <td><a href="#" id="blueButton" class="button blue">s.join_blue</a></td>
+      <td><a href="#" id="resetButton" class="button white" style="display: none">s.reset</a></td>
     </tr>
   </table> 
   
   
-
+  <script src="./en-strings.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>

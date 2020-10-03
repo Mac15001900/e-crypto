@@ -21,4 +21,7 @@ var s = {
 	"reset" : "Start a new game",
 	"enter_username" : "Enter your username:",
 	"enter_username_non_empty" : "Enter your username (in can'this be empty):",
+	"confirm_reset" : "Are you sure you want to start a new game?",
+	"started_new_game" : " started a new game!",
+	"secret_words" : "Your secret words",
 }

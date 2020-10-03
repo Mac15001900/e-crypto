@@ -2,14 +2,16 @@ let myName = '';
 let team = '';
 let nextTeam = '';
 let code = [];
+let forceGuessMode = false;
 let members = [];
+let words = [];
 //let gameState = {received = false, teams={}, codeDrawn=false, currentTeam=''};
 let gameState = {'received': false};
 //let s = JSON.parse()
 
 const NUMER_OF_WORDS = 4;
-const words = ["Lorem","ipsum","dolor","sit","amet","consectetur","adipiscing","elit","sed","do","eiusmod","tempor","incididunt","ut","labore","et","dolore","magna","aliqua","Porttitor","rhoncus","dolor","purus","non","enim","praesent","elementum","Adipiscing","enim","eu","turpis","egestas","pretium","aenean","pharetra","Odio","pellentesque","diam","volutpat","commodo","Varius","duis","at","consectetur","lorem","Sit","amet","est","placerat","in","egestas","Amet","mauris","commodo","quis","imperdiet","massa","tincidunt","nunc","pulvinar","sapien","Velit","scelerisque","in","dictum","non","consectetur","a","erat","nam","at"];
-
+const wordBank = ["Lorem","ipsum","dolor","sit","amet","consectetur","adipiscing","elit","sed","do","eiusmod","tempor","incididunt","ut","labore","et","dolore","magna","aliqua","Porttitor","rhoncus","dolor","purus","non","enim","praesent","elementum","Adipiscing","enim","eu","turpis","egestas","pretium","aenean","pharetra","Odio","pellentesque","diam","volutpat","commodo","Varius","duis","at","consectetur","lorem","Sit","amet","est","placerat","in","egestas","Amet","mauris","commodo","quis","imperdiet","massa","tincidunt","nunc","pulvinar","sapien","Velit","scelerisque","in","dictum","non","consectetur","a","erat","nam","at"];
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 const drone = new ScaleDrone(CHANNEL_ID, {
@@ -24,11 +26,13 @@ const DOM = {
   messages: document.querySelector('#messages'),
   input: document.querySelector('#text-input'),
   form: document.querySelector('#form'),
+  modeSwapButton: document.querySelector('#modeSwapButton'),
   codeButton: document.querySelector('#codeButton'),
   redButton: document.querySelector('#redButton'),
   blueButton: document.querySelector('#blueButton'),
   resetButton: document.querySelector('#resetButton'),
   descriptions: [document.querySelector('#decs1'), document.querySelector('#decs2'), document.querySelector('#decs3')],
+  inputs: [document.querySelector('#text-input'), document.querySelector('#text-input2'), document.querySelector('#text-input3')],
 };
 
 
@@ -79,7 +83,7 @@ function pickTeam(members) {
 
 function init() {
   translate();
-  updateDescriptions();
+  updateDescriptions(true);
 }
 
 
@@ -88,7 +92,7 @@ function createMemberElement(member) {
   const { name, color } = member.clientData;
   const el = document.createElement('div');
   var content = name;
-  if(name === myName) content += " " + s.you;
+  if(name === myName) content += " (" + s.you+ ")";
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
   el.style.color = color;
@@ -96,7 +100,7 @@ function createMemberElement(member) {
 }
  
 function updateMembersDOM() {
-  DOM.membersCount.innerText = members.length+' '+s.player_count;
+  //DOM.membersCount.innerText = members.length+' '+s.player_count;
   DOM.membersList.innerHTML = '';
   members.forEach(member =>
    DOM.membersList.appendChild(createMemberElement(member))
@@ -126,11 +130,14 @@ codeButton.addEventListener("click", function () {
   if(code.length === 0){
     randomiseCode();
     addMessageToListDOM(s.your_code_is + ' ' + code + "--");
+    updateDescriptions(false);
     codeButton.text = s.reveal_code;
   } else{
     sendMessage('code', code);
     codeButton.text = s.draw_code;
+    updateDescriptions(true);
     code = [];
+    DOM.modeSwapButton.style.display = 'none';
   }
   
 })
@@ -144,7 +151,37 @@ function randomiseCode() {
     elementsLeft.splice(index,1);
   }
   code = codeElements;
+  DOM.modeSwapButton.style.display = 'block';
   return(codeElements);
+}
+
+function updateDescriptions(guessMode) {
+  if(guessMode){
+    for (var i = 0; i < DOM.descriptions.length; i++) {
+      DOM.descriptions[i].innerHTML = s.guess_for + ' ' + alphabet.substring(i,1);
+      DOM.inputs[i].placeholder = s.enter_guess_here;
+    }
+  } else {
+    let codeWords = code.map(x=>words[(x-1)]);
+    for (var i = 0; i < DOM.descriptions.length; i++) {
+      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i]-1] + '":';
+      DOM.inputs[i].placeholder = s.enter_hint_here;
+    }
+  }
+}
+
+//Switching between hint and guess mode
+DOM.modeSwapButton.addEventListener("click",swapMode);
+
+function swapMode() {
+  forceGuessMode = !forceGuessMode;
+  if(forceGuessMode){
+    updateDescriptions(true);
+    modeSwapButton.value = s.guess_mode;
+  } else {
+    updateDescriptions(false);
+    modeSwapButton.value = s.hint_mode;
+  }
 }
 
 //Switching team
@@ -183,34 +220,70 @@ function switchToTeam(newTeam) {
   newButton.style.display = 'block';
   //newButton.disabled = true;
   //setTimeout(function(){newButton.disabled = false;}, 5000)
-
 }
 
-function updateDescriptions(codeWords) {
-  if(!codeWords){
-    DOM.descriptions[0].innerHTML = s.guess_for + ' A';
-    DOM.descriptions[1].innerHTML = s.guess_for + ' B';
-    DOM.descriptions[2].innerHTML = s.guess_for + ' C';
-  } else {
-    DOM.descriptions[0].innerHTML = s.hint_for + ' ' + codeWords[0];
-    DOM.descriptions[1].innerHTML = s.hint_for + ' ' + codeWords[1];
-    DOM.descriptions[2].innerHTML = s.hint_for + ' ' + codeWords[2];
+//Starting a new game
+
+resetButton.addEventListener("click", newGame);
+
+function newGame() {
+  if (confirm(s.confirm_reset)) {
+    var newWordsRed = pickNoDuplicates(wordBank,NUMER_OF_WORDS*2);
+    var newWordsBlue = newWordsRed.splice(0,NUMER_OF_WORDS);
+    sendMessage('newGame', {'wordsRed':newWordsRed, 'wordsBlue':newWordsBlue});
   }
 }
 
+function receiveNewGame(newWords) {
+  console.log(newWords);
+  if(nextTeam !== team){
+    team = nextTeam;
+    sendMessage('teamSwitch', team);
+  }
+  if(code.length>0) {
+    code = [];
+    DOM.modeSwapButton.style.display = 'none';
+    codeButton.text = s.draw_code;
+    updateDescriptions(true);
+    forceGuessMode = false;
+  }
+  words = [];
+  if(team === 'R') words = newWords.wordsRed;
+  if(team === 'B') words = newWords.wordsBlue;  
+  
+  let wordsDisplay = s.secret_words + ': ';  
+  for (var i = 0; i < words.length; i++) {
+    wordsDisplay += (i+1).toString() + ':' + words[i];
+    if(i !== words.length-1) wordsDisplay += '  |  '
+  }
+  DOM.membersCount.innerText = wordsDisplay;
+}
+
+function pickNoDuplicates(list,amount,discard) {
+  if(!discard) discard = [];
+  res = [];
+  var filteredList = list.filter(x=> !discard.includes(x));
+  while(res.length < amount){
+    var index = Math.floor(filteredList.length * Math.random());
+    var nextElem = filteredList.splice(index,1);    
+    res.push(nextElem);
+  }
+  return(res);
+}
 
 //Sending messages
 DOM.form.addEventListener('submit', sendFormMessage);
 
 function sendFormMessage() {
-  const content = DOM.input.value;
-  DOM.input.value = '';
-  if(code.length > 0){
-    sendMessage('hint',content)  
+  if(code.length === 0 || forceGuessMode){
+    sendMessage('general', DOM.inputs.map(i=>i.value));
   } else {
-    sendMessage('general',content)
+    sendMessage('hint', DOM.inputs.map(i=>i.value));
+    updateDescriptions(true);
+    forceGuessMode = true;
   }
-  
+
+  DOM.inputs.forEach(i=>i.value='');  
 }
 
 function sendMessage(type, content) {
@@ -298,6 +371,10 @@ drone.on('open', error => {
           break;
         case 'code':
           addMessageToListDOM(data.content, member); 
+          break;
+        case 'newGame':
+          addMessageToListDOM(s.started_new_game, member);
+          receiveNewGame(data.content);
           break;
         case 'teamSwitch':
           if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 

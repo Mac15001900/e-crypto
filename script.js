@@ -10,7 +10,8 @@ let gameState = {'received': false};
 //let s = JSON.parse()
 
 const NUMER_OF_WORDS = 4;
-const wordBank = ["Lorem","ipsum","dolor","sit","amet","consectetur","adipiscing","elit","sed","do","eiusmod","tempor","incididunt","ut","labore","et","dolore","magna","aliqua","Porttitor","rhoncus","dolor","purus","non","enim","praesent","elementum","Adipiscing","enim","eu","turpis","egestas","pretium","aenean","pharetra","Odio","pellentesque","diam","volutpat","commodo","Varius","duis","at","consectetur","lorem","Sit","amet","est","placerat","in","egestas","Amet","mauris","commodo","quis","imperdiet","massa","tincidunt","nunc","pulvinar","sapien","Velit","scelerisque","in","dictum","non","consectetur","a","erat","nam","at"];
+const wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat();
+const rerollWordPoll = [wordBank.en_basic].flat();
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
@@ -158,13 +159,13 @@ function randomiseCode() {
 function updateDescriptions(guessMode) {
   if(guessMode){
     for (var i = 0; i < DOM.descriptions.length; i++) {
-      DOM.descriptions[i].innerHTML = s.guess_for + ' ' + alphabet.substring(i,1);
+      DOM.descriptions[i].innerHTML = s.guess_for + ' ' + alphabet.substring(i,i+1);
       DOM.inputs[i].placeholder = s.enter_guess_here;
     }
   } else {
     let codeWords = code.map(x=>words[(x-1)]);
     for (var i = 0; i < DOM.descriptions.length; i++) {
-      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i]-1] + '":';
+      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i]-1][0].toUpperCase() + '":';
       DOM.inputs[i].placeholder = s.enter_hint_here;
     }
   }
@@ -228,7 +229,7 @@ resetButton.addEventListener("click", newGame);
 
 function newGame() {
   if (confirm(s.confirm_reset)) {
-    var newWordsRed = pickNoDuplicates(wordBank,NUMER_OF_WORDS*2);
+    var newWordsRed = pickNoDuplicates(wordPool,NUMER_OF_WORDS*2);
     var newWordsBlue = newWordsRed.splice(0,NUMER_OF_WORDS);
     sendMessage('newGame', {'wordsRed':newWordsRed, 'wordsBlue':newWordsBlue});
   }
@@ -253,7 +254,7 @@ function receiveNewGame(newWords) {
   
   let wordsDisplay = s.secret_words + ': ';  
   for (var i = 0; i < words.length; i++) {
-    wordsDisplay += (i+1).toString() + ':' + words[i];
+    wordsDisplay += (i+1).toString() + ':' + (words[i][0]).toUpperCase();
     if(i !== words.length-1) wordsDisplay += '  |  '
   }
   DOM.membersCount.innerText = wordsDisplay;
@@ -367,7 +368,13 @@ drone.on('open', error => {
           addMessageToListDOM(data.content, member); 
           break;
         case 'hint':
-          addMessageToListDOM(data.content, member); 
+          let hints = data.content;
+          let res = '';
+          for (var i = 0; i < hints.length; i++) {
+            res+= alphabet.substring(i,i+1) + ': ' + hints[i];
+            if(i<hints.length-1) res+= ' | ';
+          }
+          addMessageToListDOM(res, member); 
           break;
         case 'code':
           addMessageToListDOM(data.content, member); 

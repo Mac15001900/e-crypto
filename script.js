@@ -6,13 +6,17 @@ let forceGuessMode = false;
 let members = [];
 let words = [];
 //let gameState = {received = false, teams={}, codeDrawn=false, currentTeam=''};
-let gameState = {'received': false};
+let gameState = {'received': false, 'memberData':[]};
 //let s = JSON.parse()
 
 const NUMER_OF_WORDS = 4;
 const wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat();
 const rerollWordPoll = [wordBank.en_basic].flat();
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+const NO_TEAM_COLOR = "#AAAAAA";
+const RED_TEAM_COLOR = "#F52020";
+const BLUE_TEAM_COLOR = "#3030F0";
 
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 const drone = new ScaleDrone(CHANNEL_ID, {
@@ -35,10 +39,6 @@ const DOM = {
   descriptions: [document.querySelector('#decs1'), document.querySelector('#decs2'), document.querySelector('#decs3')],
   inputs: [document.querySelector('#text-input'), document.querySelector('#text-input2'), document.querySelector('#text-input3')],
 };
-
-
-//Test
-DOM.input.disabled = false;
 
 //Name & color generation
 function getRandomName() {
@@ -64,40 +64,44 @@ function getRandomColor() {
  return '#' + Math.floor(Math.random() * 0.8 * 0xFFFFFF).toString(16);
 }
 
-function pickTeam(members) {
-  var reds = 0, blues = 0;
-  for (var i = 0; i < members.length; i++) {
-    let memberTeam = members[i].clientData.team;
-    gameState.teams[members[i].clientData.name] = memberTeam;
-    if(memberTeam === 'red'){
-      reds++
-    }else if(memberTeam === 'blue'){
-      blues++
-    }    
-  }
-  if(reds<=blues){
-    return('red');
-  }else{
-    return('blue');
-  }
-}
+//Utility functions
 
 function init() {
   translate();
   updateDescriptions(true);
 }
 
+function getMember(input) {
+  let id = input;
+  if(typeof input === 'object') id = input.id;
+  let res = members.find(m=>m.id === id);
+  if(!res) console.error('Member with id '+ id +' not found.');
+  return res;
+}
+
+
 
 //Handle displaying things
 function createMemberElement(member) {
-  const { name, color } = member.clientData;
+  const name = member.clientData.name;
   const el = document.createElement('div');
   var content = name;
   if(name === myName) content += " (" + s.you+ ")";
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
-  el.style.color = color;
+  el.style.color = getTeamColor(getMember(member).team);
+  //el.style.color = getRandomColor();
+  console.log(el.style.color);
+  //console.log(getTeamColor(getMember(member).team));
+  //console.log(member.id+', '+getMember(member).team+', '+getMember(member)+', '+el.style.color);
   return el;
+}
+
+function getTeamColor(team) {
+  if(!team) return NO_TEAM_COLOR;
+  else if(team === 'R') return RED_TEAM_COLOR;
+  else if(team === 'B') return BLUE_TEAM_COLOR;
+  else console.error('Invalid team: '+team);
 }
  
 function updateMembersDOM() {
@@ -130,11 +134,11 @@ function addMessageToListDOM(text, member) {
 codeButton.addEventListener("click", function () {
   if(code.length === 0){
     randomiseCode();
-    addMessageToListDOM(s.your_code_is + ' ' + code + "--");
+    addMessageToListDOM(s.your_code_is + ' ' + code);
     updateDescriptions(false);
     codeButton.text = s.reveal_code;
   } else{
-    sendMessage('code', code);
+    sendMessage('codeReveal', code);
     codeButton.text = s.draw_code;
     updateDescriptions(true);
     code = [];
@@ -178,10 +182,10 @@ function swapMode() {
   forceGuessMode = !forceGuessMode;
   if(forceGuessMode){
     updateDescriptions(true);
-    modeSwapButton.value = s.guess_mode;
+    modeSwapButton.value = s.hint_mode;
   } else {
     updateDescriptions(false);
-    modeSwapButton.value = s.hint_mode;
+    modeSwapButton.value = s.guess_mode;
   }
 }
 
@@ -199,6 +203,7 @@ function switchToTeam(newTeam) {
     team = newTeam;
     nextTeam = newTeam;
     sendMessage('teamSwitch',newTeam);
+    sendMessage('requestWords',newTeam);
   }
   else {
     nextTeam = newTeam;
@@ -251,7 +256,11 @@ function receiveNewGame(newWords) {
   words = [];
   if(team === 'R') words = newWords.wordsRed;
   if(team === 'B') words = newWords.wordsBlue;  
-  
+
+  updateWordsDisplay();
+}
+
+function updateWordsDisplay() {
   let wordsDisplay = s.secret_words + ': ';  
   for (var i = 0; i < words.length; i++) {
     wordsDisplay += (i+1).toString() + ':' + (words[i][0]).toUpperCase();
@@ -277,7 +286,7 @@ DOM.form.addEventListener('submit', sendFormMessage);
 
 function sendFormMessage() {
   if(code.length === 0 || forceGuessMode){
-    sendMessage('general', DOM.inputs.map(i=>i.value));
+    sendMessage('guess', DOM.inputs.map(i=>i.value));
   } else {
     sendMessage('hint', DOM.inputs.map(i=>i.value));
     updateDescriptions(true);
@@ -288,9 +297,9 @@ function sendFormMessage() {
 }
 
 function sendMessage(type, content) {
-  if (content === '') {
+  /*if (content === '') {
     return;
-  }
+  }*/
   
   drone.publish({
     room: 'observable-room',
@@ -348,6 +357,7 @@ drone.on('open', error => {
 	room.on('member_join', member => {
 	  members.push(member);
     if(gameState.received){
+      gameState.memberData = members;
       sendMessage('welcome', gameState);  
     }    
 	  updateMembersDOM();
@@ -363,38 +373,59 @@ drone.on('open', error => {
 	room.on('data', (data, member) => {
 	  console.log(data);
     if (member) {
+      //console.log(member);
       switch(data.type){
-        case 'general':
-          addMessageToListDOM(data.content, member); 
+        case 'general': //General message to be displayed to the user
+          addMessageToListDOM(s.send_message+': '+data.content, member); 
           break;
-        case 'hint':
+        case 'hint': //Sent when a player offers a hint
           let hints = data.content;
-          let res = '';
+          let res = s.sends_hint + ': ';
           for (var i = 0; i < hints.length; i++) {
             res+= alphabet.substring(i,i+1) + ': ' + hints[i];
             if(i<hints.length-1) res+= ' | ';
           }
           addMessageToListDOM(res, member); 
           break;
-        case 'code':
-          addMessageToListDOM(data.content, member); 
+        case 'guess': //Sent when a player makes a guess
+          addMessageToListDOM(s.sends_guess+': '+data.content, member); 
           break;
-        case 'newGame':
+        case 'codeDrawn':
+          addMessageToListDOM(s.draws_code+': '+data.content, member); 
+        case 'codeReveal': //Sent when a secret code is revealed
+          addMessageToListDOM(s.reveals_code+': '+data.content, member); 
+          break;
+        case 'newGame': //Sent when a new game is started
           addMessageToListDOM(s.started_new_game, member);
           receiveNewGame(data.content);
           break;
-        case 'teamSwitch':
+        case 'teamSwitch': //Sent when a player joins a team - *not* when they decide they'll switch next game
+          getMember(member).team = data.content;
           if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 
-          else if(data.content === 'B') addMessageToListDOM(s.joins_blue, member); 
+          else if(data.content === 'B') addMessageToListDOM(s.joins_blue, member);
           else alert('Invalid team switch to '+ data.content);          
+          updateMembersDOM();
           break;
-        case 'teamsUpdate': 
-          teams = data.content; //TODO update teams display
+        case 'requestWords': //Sent when a player has just joined the game and picked a team to request that team's words
+          if(data.content === team && words.length>0){
+            sendMessage('welcomeWords', {'words':words,'team':team});
+          }
           break;
-        case 'welcome':
+        case 'welcomeWords': //Sent in response to requestWords; it delivers the words
+          if(data.content.team === team && words.length === 0){
+            words = data.content.words;
+            updateWordsDisplay();
+          }
+          break;
+        case 'welcome': //Sent whenever a new player joins the game, informing them of the game state
           if(!gameState.received){
             gameState = data.content;
+            let memberData = gameState.memberData;
+            for (var i = 0; i < memberData.length; i++) {
+              getMember(memberData[i]).team = memberData[i].team;
+            }
           }
+          updateMembersDOM();
           break;
         default: alert('Unkown message type received: '+data.type)
 

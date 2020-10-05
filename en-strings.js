@@ -25,8 +25,10 @@ var s = {
 	"switch_after_game" : "Team change will take effect in the next game",
 	"reset" : "Start a new game",
 	"enter_username" : "Enter your username:",
-	"enter_username_non_empty" : "Enter your username (in can'this be empty):",
+	"enter_username_non_empty" : "Enter your username (it can't be empty):",
 	"confirm_reset" : "Are you sure you want to start a new game?",
-	"started_new_game" : " started a new game!",
+	"started_new_game" : "started a new game!",
 	"secret_words" : "Your secret words",
+	"left_game" : "has left the game",
+	"joined_game" : "has joined the game!",
 }

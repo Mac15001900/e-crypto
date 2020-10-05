@@ -22,7 +22,7 @@ const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 const drone = new ScaleDrone(CHANNEL_ID, {
   data: { // Will be sent out as clientData via events
     name: getUsername(),
-    color: "#0x000000",
+    color: "#000000",
   },
 });
 const DOM = {
@@ -89,11 +89,7 @@ function createMemberElement(member) {
   if(name === myName) content += " (" + s.you+ ")";
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
-  el.style.color = getTeamColor(getMember(member).team);
-  //el.style.color = getRandomColor();
-  console.log(el.style.color);
-  //console.log(getTeamColor(getMember(member).team));
-  //console.log(member.id+', '+getMember(member).team+', '+getMember(member)+', '+el.style.color);
+  el.style.color = getTeamColor(member.team);
   return el;
 }
 
@@ -356,6 +352,7 @@ drone.on('open', error => {
 	// User joined the room
 	room.on('member_join', member => {
 	  members.push(member);
+    addMessageToListDOM(s.joined_game, member); 
     if(gameState.received){
       gameState.memberData = members;
       sendMessage('welcome', gameState);  
@@ -365,14 +362,16 @@ drone.on('open', error => {
 	 
 	// User left the room
 	room.on('member_leave', ({id}) => {
+    addMessageToListDOM(s.left_game, getMember(id)); 
     const index = members.findIndex(member => member.id === id);
     members.splice(index, 1);
     updateMembersDOM(); 
 	});
 
-	room.on('data', (data, member) => {
+	room.on('data', (data, serverMember) => {
 	  console.log(data);
-    if (member) {
+    if (serverMember) {
+      let member = getMember(serverMember);
       //console.log(member);
       switch(data.type){
         case 'general': //General message to be displayed to the user
@@ -400,7 +399,7 @@ drone.on('open', error => {
           receiveNewGame(data.content);
           break;
         case 'teamSwitch': //Sent when a player joins a team - *not* when they decide they'll switch next game
-          getMember(member).team = data.content;
+          member.team = data.content;
           if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 
           else if(data.content === 'B') addMessageToListDOM(s.joins_blue, member);
           else alert('Invalid team switch to '+ data.content);          

@@ -16,7 +16,7 @@
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    .members-count,
+    .secret-words,
     .members-list,
     .messages {
       border: 1px solid #e4e4e4;
@@ -117,7 +117,7 @@
   </style>
 </head>
 <body>
-  <div id="members-count" class="members-count">-</div>
+  <div id="secretWordsDisplay" class="secret-words">-</div>
   <div id="members-list" class="members-list">-</div>
   <div id="messages" class="messages"></div>
   <form id="form" class="message-form" onsubmit="return false;">
@@ -136,7 +136,7 @@
     <table>
       <tr>
         <td><input class="button green" value="s.send" type="submit"/></td>
-        <td><input id ="modeSwapButton" class="button green" value="s.guess_mode" style='display:none'/></td>
+        <td><input id ="modeSwapButton" class="button green" value="s.guess_mode" style='display:none' type="button" /></td>
       </tr>
     </table>
     
@@ -148,6 +148,7 @@
     <tr>
       <td><a href="#" id="redButton" class="button red">s.join_red</a></td>
       <td><a href="#" id="blueButton" class="button blue">s.join_blue</a></td>
+      <td><a href="#" id="rerollButton" class="button green" style='display:none'>s.reroll</a></td>
       <td><a href="#" id="resetButton" class="button white" style="display: none">s.reset</a></td>
     </tr>
   </table> 

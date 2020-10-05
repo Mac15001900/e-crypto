@@ -5,18 +5,21 @@ let code = [];
 let forceGuessMode = false;
 let members = [];
 let words = [];
-//let gameState = {received = false, teams={}, codeDrawn=false, currentTeam=''};
+let rerollsLeft= 0;
 let gameState = {'received': false, 'memberData':[]};
-//let s = JSON.parse()
+let rulesShown = false;
 
 const NUMER_OF_WORDS = 4;
+const REROLLS_PER_GAME = 2;
 const wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat();
-const rerollWordPoll = [wordBank.en_basic].flat();
+const rerollWordPool = [wordBank.en_basic].flat();
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const NO_TEAM_COLOR = "#AAAAAA";
 const RED_TEAM_COLOR = "#F52020";
 const BLUE_TEAM_COLOR = "#3030F0";
+const RED_BACKGROUND = "#ed143d6b";
+const BLUE_BACKGROUND = '#00bfff5c';//'#469ae4';//"#00bfff5c"; #56affd
 
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 const drone = new ScaleDrone(CHANNEL_ID, {
@@ -26,7 +29,7 @@ const drone = new ScaleDrone(CHANNEL_ID, {
   },
 });
 const DOM = {
-  membersCount: document.querySelector('#members-count'),
+  secretWordsDisplay: document.querySelector('#secretWordsDisplay'),
   membersList: document.querySelector('#members-list'),
   messages: document.querySelector('#messages'),
   input: document.querySelector('#text-input'),
@@ -35,6 +38,7 @@ const DOM = {
   codeButton: document.querySelector('#codeButton'),
   redButton: document.querySelector('#redButton'),
   blueButton: document.querySelector('#blueButton'),
+  rerollButton: document.querySelector('#rerollButton'),
   resetButton: document.querySelector('#resetButton'),
   descriptions: [document.querySelector('#decs1'), document.querySelector('#decs2'), document.querySelector('#decs3')],
   inputs: [document.querySelector('#text-input'), document.querySelector('#text-input2'), document.querySelector('#text-input3')],
@@ -42,8 +46,8 @@ const DOM = {
 
 //Name & color generation
 function getRandomName() {
-  const adjs = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient", "twilight", "dawn", "crimson", "wispy", "weathered", "blue", "billowing", "broken", "cold", "damp", "falling", "frosty", "green", "long", "late", "lingering", "bold", "little", "morning", "muddy", "old", "red", "rough", "still", "small", "sparkling", "throbbing", "shy", "wandering", "withered", "wild", "black", "young", "holy", "solitary", "fragrant", "aged", "snowy", "proud", "floral", "restless", "divine", "polished", "ancient", "purple", "lively", "nameless"];
-  const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill", "cloud", "meadow", "sun", "glade", "bird", "brook", "butterfly", "bush", "dew", "dust", "field", "fire", "flower", "firefly", "feather", "grass", "haze", "mountain", "night", "pond", "darkness", "snowflake", "silence", "sound", "sky", "shape", "surf", "thunder", "violet", "water", "wildflower", "wave", "water", "resonance", "sun", "wood", "dream", "cherry", "tree", "fog", "frost", "voice", "paper", "frog", "smoke", "star"];
+  const adjs = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient"];
+  const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill"];
   const name = adjs[Math.floor(Math.random() * adjs.length)] +
    "_" + nouns[Math.floor(Math.random() * nouns.length)];
   myName = name;
@@ -101,11 +105,20 @@ function getTeamColor(team) {
 }
  
 function updateMembersDOM() {
-  //DOM.membersCount.innerText = members.length+' '+s.player_count;
+  //DOM.secretWordsDisplay.innerText = members.length+' '+s.player_count;
   DOM.membersList.innerHTML = '';
-  members.forEach(member =>
+  members.sort(compareMembers).forEach(member =>
    DOM.membersList.appendChild(createMemberElement(member))
   );
+}
+
+function compareMembers(m1,m2) {
+  if(!m1.team){
+    if(m2.team) return 1;
+    else return 0;
+  } else{
+    return m1.team.localeCompare(m2.team);
+  }
 }
  
 function addElementToListDOM(element) {
@@ -118,6 +131,13 @@ function addElementToListDOM(element) {
 }
  
 function addMessageToListDOM(text, member) {
+  if(text.includes('\n')){
+    let messages = text.split('\n');
+    for (var i = 0; i < messages.length; i++) {
+      addMessageToListDOM(messages[i], member);
+    }
+    return;
+  }
   const el = document.createElement('div');
   if(member) el.appendChild(createMemberElement(member));
   el.appendChild(document.createTextNode(text));
@@ -129,10 +149,15 @@ function addMessageToListDOM(text, member) {
 //Getting codes
 codeButton.addEventListener("click", function () {
   if(code.length === 0){
+    sendMessage('codeDrawn');
     randomiseCode();
     addMessageToListDOM(s.your_code_is + ' ' + code);
     updateDescriptions(false);
     codeButton.text = s.reveal_code;
+    if(!rulesShown){
+      addMessageToListDOM(s.hint_rules);
+      rulesShown = true;
+    }
   } else{
     sendMessage('codeReveal', code);
     codeButton.text = s.draw_code;
@@ -165,7 +190,7 @@ function updateDescriptions(guessMode) {
   } else {
     let codeWords = code.map(x=>words[(x-1)]);
     for (var i = 0; i < DOM.descriptions.length; i++) {
-      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i]-1][0].toUpperCase() + '":';
+      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i]-1] + '":';
       DOM.inputs[i].placeholder = s.enter_hint_here;
     }
   }
@@ -200,6 +225,9 @@ function switchToTeam(newTeam) {
     nextTeam = newTeam;
     sendMessage('teamSwitch',newTeam);
     sendMessage('requestWords',newTeam);
+    DOM.redButton.innerHTML = s.switch_to_red;
+    DOM.blueButton.innerHTML = s.switch_to_blue;
+    updateTeamStyle(team);
   }
   else {
     nextTeam = newTeam;
@@ -220,9 +248,44 @@ function switchToTeam(newTeam) {
     return;
   }
   newButton.style.display = 'block';
-  //newButton.disabled = true;
-  //setTimeout(function(){newButton.disabled = false;}, 5000)
 }
+
+function updateTeamStyle(team) {
+  if(team === 'R') {
+    secretWordsDisplay.style.backgroundColor = RED_BACKGROUND;
+  }
+  else if(team=='B') {
+    secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
+    //document.body.style.backgroundColor = BLUE_BACKGROUND;
+  }
+  else alert('Invalid team '+team);
+}
+
+//Re-rolling words
+
+DOM.rerollButton.addEventListener("click",askBoutReroll);
+
+function askBoutReroll() {
+  let ans = prompt(s.ask_for_reroll);
+  if(ans && rerollsLeft>0){
+    let number = Math.floor(Number(ans));
+    if(isNaN(number)) alert(s.enter_a_number);
+    else if(number>NUMER_OF_WORDS || number<1){
+      alert(s.number_must_be_between+' '+1+' '+s.between_and+' '+NUMER_OF_WORDS);
+    } else{
+      reroll(number);
+    }
+  }else if(rerollsLeft<=0){
+    alert(s.reroll_used_by_teammate);
+  }
+}
+
+function reroll(word) {
+  let newWord = rerollWordPool[Math.floor(Math.random()*rerollWordPool.length)].toUpperCase();
+  console.log('Rerolled '+words[word-1]+' for '+newWord);
+  sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
+}
+
 
 //Starting a new game
 
@@ -230,7 +293,7 @@ resetButton.addEventListener("click", newGame);
 
 function newGame() {
   if (confirm(s.confirm_reset)) {
-    var newWordsRed = pickNoDuplicates(wordPool,NUMER_OF_WORDS*2);
+    var newWordsRed = pickNoDuplicates(wordPool,NUMER_OF_WORDS*2).map(s=>s.toUpperCase());
     var newWordsBlue = newWordsRed.splice(0,NUMER_OF_WORDS);
     sendMessage('newGame', {'wordsRed':newWordsRed, 'wordsBlue':newWordsBlue});
   }
@@ -250,19 +313,39 @@ function receiveNewGame(newWords) {
     forceGuessMode = false;
   }
   words = [];
-  if(team === 'R') words = newWords.wordsRed;
-  if(team === 'B') words = newWords.wordsBlue;  
-
+  if(team === 'R') {
+    words = newWords.wordsRed;
+    secretWordsDisplay.style.backgroundColor = RED_BACKGROUND;
+  }
+  if(team === 'B')  {
+     words = newWords.wordsBlue;
+     secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
+  }
   updateWordsDisplay();
+
+  if(team){
+    rerollsLeft = REROLLS_PER_GAME;
+    updateRerollButton();  
+  }  
 }
 
 function updateWordsDisplay() {
   let wordsDisplay = s.secret_words + ': ';  
   for (var i = 0; i < words.length; i++) {
-    wordsDisplay += (i+1).toString() + ':' + (words[i][0]).toUpperCase();
+    wordsDisplay += (i+1).toString() + ':' + words[i];
     if(i !== words.length-1) wordsDisplay += '  |  '
   }
-  DOM.membersCount.innerText = wordsDisplay;
+  DOM.secretWordsDisplay.innerText = wordsDisplay;
+}
+
+function updateRerollButton(){
+  if(rerollsLeft > 0){
+    DOM.rerollButton.style.display = 'block';
+    DOM.rerollButton.text = s.reroll+' ('+rerollsLeft+')';
+  } else{
+    DOM.rerollButton.style.display = 'none';
+  }
+  
 }
 
 function pickNoDuplicates(list,amount,discard) {
@@ -274,7 +357,7 @@ function pickNoDuplicates(list,amount,discard) {
     var nextElem = filteredList.splice(index,1);    
     res.push(nextElem);
   }
-  return(res);
+  return(res.flat());
 }
 
 //Sending messages
@@ -384,13 +467,19 @@ drone.on('open', error => {
             res+= alphabet.substring(i,i+1) + ': ' + hints[i];
             if(i<hints.length-1) res+= ' | ';
           }
-          addMessageToListDOM(res, member); 
+          addMessageToListDOM(res, member);
           break;
         case 'guess': //Sent when a player makes a guess
           addMessageToListDOM(s.sends_guess+': '+data.content, member); 
           break;
         case 'codeDrawn':
-          addMessageToListDOM(s.draws_code+': '+data.content, member); 
+          addMessageToListDOM(s.draws_code, member); 
+          if(member.team === team && rerollsLeft>0){
+            rerollsLeft = 0;
+            addMessageToListDOM(s.rerolls_gone);
+            updateRerollButton();
+          }
+          break;
         case 'codeReveal': //Sent when a secret code is revealed
           addMessageToListDOM(s.reveals_code+': '+data.content, member); 
           break;
@@ -405,15 +494,29 @@ drone.on('open', error => {
           else alert('Invalid team switch to '+ data.content);          
           updateMembersDOM();
           break;
-        case 'requestWords': //Sent when a player has just joined the game and picked a team to request that team's words
-          if(data.content === team && words.length>0){
-            sendMessage('welcomeWords', {'words':words,'team':team});
+        case 'rerollUsed': //sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
+          if(data.content.team === team && rerollsLeft>0){
+            rerollsLeft -= 1;
+            addMessageToListDOM(s.rerolls_from+' '+words[data.content.wordNumber-1].toUpperCase()+' '+s.rerolls_to+' '+data.content.newWord.toUpperCase(), member);
+            words[data.content.wordNumber-1] = data.content.newWord;            
+            updateWordsDisplay();
+            updateRerollButton();
+          } else if(data.content.team === team){
+            addMessageToListDOM(s.reroll_failed, member);
           }
           break;
-        case 'welcomeWords': //Sent in response to requestWords; it delivers the words
+        case 'requestWords': //Sent when a player has just joined the game and picked a team to request that team's words
+          if(data.content === team && words.length>0){
+            sendMessage('welcomeWords', {'words':words,'team':team, 'rerolls':rerollsLeft});
+          }
+          break;
+        case 'welcomeWords': //Sent in response to requestWords; it delivers the words and amount of rerolls
           if(data.content.team === team && words.length === 0){
             words = data.content.words;
             updateWordsDisplay();
+
+            rerollsLeft = data.content.rerolls;
+            updateRerollButton();
           }
           break;
         case 'welcome': //Sent whenever a new player joins the game, informing them of the game state
@@ -425,6 +528,7 @@ drone.on('open', error => {
             }
           }
           updateMembersDOM();
+          updateRerollButton();
           break;
         default: alert('Unkown message type received: '+data.type)
 

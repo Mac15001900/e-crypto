@@ -124,10 +124,26 @@ function createMemberElement(member) {
   const el = document.createElement('div');
   var content = name;
   if(name === myName) content += " (" + s.you+ ")";
+  if(member.team) content  += createVisualTokens(member.team);
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
   el.style.color = getTeamColor(member.team);
   return el;
+}
+
+function createVisualTokens(team) {
+  var res = '';
+  var tokens = gs.tokens[team];
+  if(!tokens) return '';
+  for (var i = 0; i < tokens.good; i++) {
+    res += s.intercept_icon
+  }
+  if(res) res+=' ';
+  for (var i = 0; i < tokens.bad; i++) {
+    res += s.failure_icon
+  }
+  if(res) res = ' '+res;
+  return res;
 }
 
 function getTeamColor(team) {
@@ -191,7 +207,7 @@ codeButton.addEventListener("click", function () {
       rulesShown = true;
     }
   } else{
-    sendMessage('codeReveal', {'code':code});
+    sendMessage('codeReveal', {'code':code}); //TODO get rid of this
     codeButton.text = s.draw_code;
     updateDescriptions(true);
     code = [];
@@ -257,8 +273,8 @@ function switchToTeam(newTeam) {
     nextTeam = newTeam;
     sendMessage('teamSwitch',newTeam);
     sendMessage('requestWords',newTeam);
-    DOM.redButton.innerHTML = s.switch_to_red;
-    DOM.blueButton.innerHTML = s.switch_to_blue;
+    DOM.redButton.innerHTML = s.switch_to_R;
+    DOM.blueButton.innerHTML = s.switch_to_B;
     updateTeamStyle(team);
   }
   else {
@@ -359,11 +375,15 @@ function receiveNewGame(data) {
     updateRerollButton();  
   }  
 
+  addMessageToListDOM(s['starts_'+data.startingTeam]);
+
+  gs.received = true;
   gs.round = 1;
   gs.startingTeam = data.startingTeam;
   gs.currentTeam  = data.startingTeam;
   gs.roundState = RS.START;
   gs.tokens = {R:{good:0,bad:0}, B:{good:0,bad:0}};
+  updateMembersDOM();
 }
 
 function updateWordsDisplay() {
@@ -400,51 +420,59 @@ function pickNoDuplicates(list,amount,discard) {
 //Round progression
 
 function nextState() {
+  addMessageToListDOM('Incrementing state: '+gs.roundState);
+  if(gs.roundState === RS.NO_GAME) return;
   gs.roundState++;
 
-  if(round === 1 && gs.roundState === RS.HINT_GIVEN) {
+  if(gs.round === 1 && gs.roundState === RS.HINT_GIVEN) {
     gs.roundState++;  //Enemy team doesn't guess in round 1
   }
 
   if(gs.roundState === RS.HINT_GIVEN){
-    if(gs.currentTeam === team) addMessageToListDOM(s.time_to_guess_ally);
-    else addMessageToListDOM(s.time_to_guess_ally);
+    if(gs.currentTeam === team) addMessageToListDOM(s.enemy_time_to_guess_ally);
+    else addMessageToListDOM(s.your_time_to_guess_enemy);
   }
 
   if(gs.roundState === RS.ENEMY_GUESSED){
-    if(gs.currentTeam === team) addMessageToListDOM(s.time_to_guess_ally);
-    else addMessageToListDOM(s.time_to_guess_ally);
+    if(gs.currentTeam === team) addMessageToListDOM(s.your_time_to_guess_ally);
+    else addMessageToListDOM(s.enemy_time_to_guess_enemy);
   }
-
-  if(team === gs.currentTeam && gs.roundState === RS.ENEMY_GUESSED) addMessageToListDOM(s.time_to_guess_ally);
-  if(team !== gs.currentTeam && gs.roundState === RS.HINT_GIVEN) addMessageToListDOM(s.time_to_guess_enemy);
 
   if(gs.roundState === RS.ROUND_END){
     gs.currentTeam = otherTeam(gs.currentTeam);
     gs.roundState = RS.START;
-    if(gs.startingTeam !== gs.currentTeam){
+    if(gs.startingTeam === gs.currentTeam){
       gs.round++;
       gs.startingTeam = otherTeam(gs.startingTeam);
       gs.currentTeam = gs.startingTeam;
+      forceGuessMode = false;
       if(gs.round > NUMBER_OF_ROUNDS) endGame('');
     }
   }
+
+  addMessageToListDOM('New state: '+gs.roundState);
 }
 
 //Guess processing
 
 function processGuesses(code) {
-  var cteam = gs.currentTeam;
-  var oteam = otherTeam(cTeam);
-  if(guesses[oteam].toString() === code.toString()) gs.tokens[oteam].good++;
-  if(guesses[cteam].toString() !== code.toString()) gs.tokens[cteam].bad++;  
+  var currentTeam = gs.currentTeam;
+  var opponents = otherTeam(currentTeam); 
+  if(gs.round > 1 && guesses[opponents].toString() === code.toString()) {
+    gs.tokens[opponents].good++;
+    addMessageToListDOM(s['gains_intercept_'+opponents]+': '+s.intercept_icon);
+  }
+  if(guesses[currentTeam].toString() !== code.toString()) {
+    gs.tokens[currentTeam].bad++;  
+    addMessageToListDOM(s['gains_failure_'+currentTeam]+': '+s.failure_icon);
+  }
+  updateMembersDOM();
 }
 
 //Ending the game
 function endGame(winningTeam) {
   gs.roundState = RS.NO_GAME;
-  if(winningTeam === 'R') addMessageToListDOM(s.game_end_red);
-  else if(winningTeam === 'B') addMessageToListDOM(s.game_end_blue);
+  if(winningTeam) addMessageToListDOM(s['game_end_'+winningTeam]);
   else {
     var pointDifference = (gs.tokens.R.good - gs.tokens.R.bad) - (gs.tokens.B.good - gs.tokens.B.bad);
     if(pointDifference === 0) addMessageToListDOM(s.game_end_tie); //TODO further tiebreaker  
@@ -479,10 +507,10 @@ function sendFormMessage() {
     }
     
   } else { //Sending a hint
-    if(gs.roundState = RS.START && gs.currentTeam === team){
+    if(gs.roundState === RS.START && gs.currentTeam === team){
       sendMessage('hint', DOM.inputs.map(i=>i.value));
       updateDescriptions(true);
-      forceGuessMode = true;  
+      forceGuessMode = true;  //????
       isHintGiver = true;
     }else{
       alert(s.not_your_turn);
@@ -588,8 +616,16 @@ drone.on('open', error => {
           break;
         case 'guess': //Sent when a player makes a guess
           addMessageToListDOM(s.sends_guess+': '+data.content, member); //TODO make sure it's valid
-          guesses[member.team] = guess;
+          guesses[member.team] = data.content;
           nextState();
+          if(isHintGiver && gs.roundState == RS.ALLY_GUESSED){
+            isHintGiver = false;            
+            sendMessage('codeReveal', {'code':code});
+            codeButton.text = s.draw_code; //TODO remove this phase of the button
+            updateDescriptions(true);
+            code = [];
+            DOM.modeSwapButton.style.display = 'none';            
+          }
           break;
         case 'codeDrawn':
           addMessageToListDOM(s.draws_code, member); 
@@ -601,7 +637,8 @@ drone.on('open', error => {
           break;
         case 'codeReveal': //Sent when a secret code is revealed
           addMessageToListDOM(s.reveals_code+': '+data.content.code, member); 
-          processGuesses(code);
+          processGuesses(data.content.code);
+          checkForTokenVictory();
           nextState();
           break;
         case 'newGame': //Sent when a new game is started
@@ -610,9 +647,10 @@ drone.on('open', error => {
           break;
         case 'teamSwitch': //Sent when a player joins a team - *not* when they decide they'll switch next game
           member.team = data.content;
-          if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 
+          /*if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 
           else if(data.content === 'B') addMessageToListDOM(s.joins_blue, member);
-          else alert('Invalid team switch to '+ data.content);          
+          else alert('Invalid team switch to '+ data.content);          */
+          addMessageToListDOM(s['joins_'+data.content], member);
           updateMembersDOM();
           break;
         case 'rerollUsed': //sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});

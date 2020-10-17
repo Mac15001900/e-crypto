@@ -27,7 +27,7 @@ let rerollsLeft= 0;
 let rulesShown = false;
 
 //gameState block:
-let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','currentTeam':'','roundState':RS.NO_GAME,'hintGiver':{},'tokens':{}};
+let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','currentTeam':'','roundState':RS.NO_GAME,'hintGiver':{},'tokens':{},'hintHistory':{}};
 
 //Game settings
 const NUMER_OF_WORDS = 4;
@@ -69,6 +69,7 @@ const DOM = {
   resetButton: document.querySelector('#resetButton'),
   descriptions: [document.querySelector('#decs1'), document.querySelector('#decs2'), document.querySelector('#decs3')],
   inputs: [document.querySelector('#text-input'), document.querySelector('#text-input2'), document.querySelector('#text-input3')],
+  hintTable: document.querySelector('#hintTable'),
 };
 
 //Name & color generation
@@ -100,6 +101,9 @@ function getRandomColor() {
 function init() {
   translate();
   updateDescriptions(true);
+  resetGameState();
+  //TODO remove this test
+  hintTable.rows[1].cells[6].innerHTML = 'Line one\nLine two\nOne really long line with a lot of text in it that could cause layout problems';
 }
 
 function getMember(input) {
@@ -114,6 +118,15 @@ function otherTeam(team) {
   if(team === 'R') return 'B';
   else if(team === 'B') return 'R';
   else console.error('Invalid team '+ team);
+}
+
+function repeat(n, ...fs) {
+  for (var i = 0; i < fs.length; i++) {
+    for (var j = 0; j < n; j++) {
+      fs[i]();
+    }  
+  }
+  
 }
 
 
@@ -207,11 +220,12 @@ codeButton.addEventListener("click", function () {
       rulesShown = true;
     }
   } else{
-    sendMessage('codeReveal', {'code':code}); //TODO get rid of this
+    alert(s.already_have_code+'\n'+code);
+    /*sendMessage('codeReveal', {'code':code}); //TODO get rid of this
     codeButton.text = s.draw_code;
     updateDescriptions(true);
     code = [];
-    DOM.modeSwapButton.style.display = 'none';
+    DOM.modeSwapButton.style.display = 'none';*/
   }
   
 })
@@ -368,7 +382,7 @@ function receiveNewGame(data) {
      words = data.wordsBlue;
      secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
   }
-  updateWordsDisplay();
+  
 
   if(team){
     rerollsLeft = REROLLS_PER_GAME;
@@ -376,22 +390,43 @@ function receiveNewGame(data) {
   }  
 
   addMessageToListDOM(s['starts_'+data.startingTeam]);
-
+  resetGameState(data.startingTeam);
   gs.received = true;
-  gs.round = 1;
-  gs.startingTeam = data.startingTeam;
-  gs.currentTeam  = data.startingTeam;
   gs.roundState = RS.START;
-  gs.tokens = {R:{good:0,bad:0}, B:{good:0,bad:0}};
+
+  updateWordsDisplay();
   updateMembersDOM();
+  updateHintTable();
+}
+
+function resetGameState(startingTeam) {
+  if(!startingTeam) startingTeam = '';
+  gs.round = 1;
+  gs.startingTeam = startingTeam;
+  gs.currentTeam  = startingTeam;
+  gs.roundState = RS.NO_GAME;
+  gs.tokens = {R:{good:0,bad:0}, B:{good:0,bad:0}};
+  gs.hintHistory = {last:[],R:[],B:[]};
+  repeat(NUMER_OF_WORDS, ()=>gs.hintHistory.R.push([]), ()=>gs.hintHistory.B.push([]));
 }
 
 function updateWordsDisplay() {
-  let wordsDisplay = s.secret_words + ': ';  
-  for (var i = 0; i < words.length; i++) {
-    wordsDisplay += (i+1).toString() + ':' + words[i];
-    if(i !== words.length-1) wordsDisplay += '  |  '
-  }
+  let wordsDisplay = '';
+  if(team){
+    wordsDisplay += s.secret_words + ': ';  
+    for (var i = 0; i < words.length; i++) {
+      wordsDisplay += (i+1).toString() + ':' + words[i];
+      if(i !== words.length-1) wordsDisplay += '  |  ';
+    }  
+  } else 
+  
+  //Add game status:
+  wordsDisplay += '\n\n'+ s.status+': ';
+  if([0,4,5].includes(gs.roundState)) wordsDisplay+= s['status_'+gs.roundState];
+  else wordsDisplay+= s['status_'+gs.roundState+'_'+gs.currentTeam];
+
+  wordsDisplay += '\n'+s.round+': '+gs.round+'/'+NUMBER_OF_ROUNDS;
+
   DOM.secretWordsDisplay.innerText = wordsDisplay;
 }
 
@@ -443,6 +478,7 @@ function nextState() {
     gs.roundState = RS.START;
     if(gs.startingTeam === gs.currentTeam){
       gs.round++;
+      addMessageToListDOM(s.round_start1+' '+gs.round+' '+s.round_start2);
       gs.startingTeam = otherTeam(gs.startingTeam);
       gs.currentTeam = gs.startingTeam;
       forceGuessMode = false;
@@ -450,6 +486,7 @@ function nextState() {
     }
   }
 
+  updateWordsDisplay();
   addMessageToListDOM('New state: '+gs.roundState);
 }
 
@@ -467,7 +504,39 @@ function processGuesses(code) {
     addMessageToListDOM(s['gains_failure_'+currentTeam]+': '+s.failure_icon);
   }
   updateMembersDOM();
+  var hints = gs.hintHistory.last;
+  console.log(hints);
+  console.log(code);
+  for (var i = 0; i < code.length; i++) {
+    addHintToTable(hints[i],currentTeam,code[i]-1);
+    gs.hintHistory[currentTeam][code[i]-1].push(hints[i]);
+  }
 }
+
+function addHintToTable(hint,team,wordPos) {
+  var cell = hintTable.rows[1].cells[wordPos+(team==='R'? 0:4)]
+  if(!cell.innerHTML) cell.innerHTML = hint;
+  else cell.innerHTML = cell.innerHTML+'\n\n'+hint;  
+}
+
+function updateHintTable(team) {
+  if(!team){
+    updateHintTable('R');
+    updateHintTable('B');
+  }else{
+    const offset = team==='R' ? 0 : 4;
+    for (var i = 0; i < NUMER_OF_WORDS; i++) {
+      var cell = hintTable.rows[1].cells[i+offset];
+      cell.innerHTML = '';
+      for (var j = 0; j < gs.hintHistory[team][i].length; j++) {
+        console.log('Updating cell '+(i+offset)+' with '+gs.hintHistory[team][i][j]);
+        addHintToTable(gs.hintHistory[team][i][j], team, i);
+      }
+    }  
+  }  
+}
+
+
 
 //Ending the game
 function endGame(winningTeam) {
@@ -501,7 +570,7 @@ function sendFormMessage() {
   if(code.length === 0 || forceGuessMode){ //Sending a guess
     if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
       || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round>1)){
-        sendMessage('guess', DOM.inputs.map(i=>i.value));  
+        sendMessage('guess', DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y)) : x));
     }else{
       alert(s.not_your_turn);
     }
@@ -510,7 +579,7 @@ function sendFormMessage() {
     if(gs.roundState === RS.START && gs.currentTeam === team){
       sendMessage('hint', DOM.inputs.map(i=>i.value));
       updateDescriptions(true);
-      forceGuessMode = true;  //????
+      forceGuessMode = true;
       isHintGiver = true;
     }else{
       alert(s.not_your_turn);
@@ -518,6 +587,10 @@ function sendFormMessage() {
   }
 
   DOM.inputs.forEach(i=>i.value='');  
+}
+
+function wordsEqual(word1, word2) {
+  return word1.toString().toUpperCase() === word2.toString().toUpperCase();
 }
 
 function sendMessage(type, content) {
@@ -610,6 +683,7 @@ drone.on('open', error => {
           }
           addMessageToListDOM(res, member);
           gs.hintGiver = member;
+          gs.hintHistory.last = data.content;
 
           gs.roundState = RS.START; //Reset progress from previous hint if present
           nextState();
@@ -647,9 +721,6 @@ drone.on('open', error => {
           break;
         case 'teamSwitch': //Sent when a player joins a team - *not* when they decide they'll switch next game
           member.team = data.content;
-          /*if(data.content === 'R') addMessageToListDOM(s.joins_red, member); 
-          else if(data.content === 'B') addMessageToListDOM(s.joins_blue, member);
-          else alert('Invalid team switch to '+ data.content);          */
           addMessageToListDOM(s['joins_'+data.content], member);
           updateMembersDOM();
           break;
@@ -685,9 +756,10 @@ drone.on('open', error => {
             for (var i = 0; i < memberData.length; i++) {
               getMember(memberData[i]).team = memberData[i].team;
             }
+            updateRerollButton();
+            updateHintTable();
           }
-          updateMembersDOM();
-          updateRerollButton();
+          updateMembersDOM();          
           break;
         default: alert('Unkown message type received: '+data.type)
 

@@ -18,10 +18,31 @@
 
     .secret-words,
     .members-list,
+    .hint-list,
     .messages {
-      border: 1px solid #e4e4e4;
+      border: 1px solid #d4d4d4;
       padding: 15px;
       margin-bottom: 15px;
+    }
+
+    .secret-words{
+      white-space: pre-wrap;
+    }
+
+    .tg  {border-collapse:collapse;border-spacing:0; white-space:pre-wrap; word-wrap:break-word; margin-bottom: 15px;} 
+    .tg td{border-color:#d4d4d4;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg th{border-color:#d4d4d4;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg .hint-table-entry{text-align:center;vertical-align:top}
+    .tg .hint-table-header{text-align:center;vertical-align:top;font-weight:bold}
+
+    .red-header {
+      background-color: #ed143d6b;
+    }
+
+    .blue-header{
+      background-color: #00bfff5c;
     }
 
     .messages {
@@ -117,9 +138,46 @@
   </style>
 </head>
 <body>
-  <div id="secretWordsDisplay" class="secret-words">-</div>
-  <div id="members-list" class="members-list">-</div>
-  <div id="messages" class="messages"></div>
+  
+  <table style="width: 100%;">
+    <tr>
+      <td style="width: 30%;">
+        <div id="members-list" class="members-list"></div>
+      </td>
+      <td style="width: 100%;">
+        <div id="secretWordsDisplay" class="secret-words">-</div>                    
+      </td>
+      </tr>
+  </table>
+
+  <table id="hintTable" class="tg" style="width: 100%;">
+          <thead>
+            <tr>
+              <th class="hint-table-header red-header">1</th>
+              <th class="hint-table-header red-header">2</th>
+              <th class="hint-table-header red-header">3</th>
+              <th class="hint-table-header red-header">4</th>
+              <th class="hint-table-header blue-header">1</th>
+              <th class="hint-table-header blue-header">2</th>
+              <th class="hint-table-header blue-header">3</th>
+              <th class="hint-table-header blue-header">4</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+              <td class="hint-table-entry" style="width: 10%;"></td>
+            </tr>
+          </tbody>
+        </table>
+  
+  <div id="messages" class="messages" style="min-height: 200px;"></div>
   <form id="form" class="message-form" onsubmit="return false;">
     <table style="border-spacing: 20px 2px;">
       <tr>

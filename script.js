@@ -17,7 +17,6 @@ let nextTeam = ''; //Team we'll switch to next game
 let isHintGiver = false; //True between giving out a hint and releaving the code.
 let code = [];
 let forceGuessMode = false; //UI variable
-let guesses = {'R':[],'B':[]};
 
 //Team variables
 let words = [];
@@ -27,16 +26,20 @@ let rerollsLeft= 0;
 let rulesShown = false;
 
 //gameState block:
-let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','currentTeam':'','roundState':RS.NO_GAME,'hintGiver':{},'tokens':{},'hintHistory':{}};
+let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','currentTeam':'','roundState':RS.NO_GAME,'hintGiver':{},
+  'tokens':{},'hintHistory':{},'guesses':{'R':[],'B':[]}};
 
 //Game settings
-const NUMER_OF_WORDS = 4;
-const REROLLS_PER_GAME = 2;
-const NUMBER_OF_ROUNDS = 8;
-const TOKENS_NEEDED = 2;
-const ROOM_NAME = 'observable-room';
-const wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat();
-const rerollWordPool = [wordBank.en_basic].flat();
+const DEBUG_MODE = true; //Whether debug info is printed
+const RANDOM_NAMES = true; //Whether usernames are randomly generated
+
+const SWAP_TEAMS = false; //Whether the starting team changes each round
+const NUMER_OF_WORDS = 4; //Number of words per team (other values not yet supported)
+const REROLLS_PER_GAME = 2; //How many rerolls does each team get at the start
+const NUMBER_OF_ROUNDS = 8; //How many rounds are there
+const TOKENS_NEEDED = 2; //How many tokens are needed to win
+const wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat(); //Pool the words are drawn from
+const rerollWordPool = [wordBank.en_basic].flat(); //Pool words are drawn from after reroll
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 //UI settings
@@ -47,6 +50,7 @@ const RED_BACKGROUND = "#ed143d6b";
 const BLUE_BACKGROUND = '#00bfff5c';//'#469ae4';//"#00bfff5c"; #56affd
 
 //Network settings
+const ROOM_NAME = 'observable-room';
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 const drone = new ScaleDrone(CHANNEL_ID, {
   data: { // Will be sent out as clientData via events
@@ -76,15 +80,16 @@ const DOM = {
 function getRandomName() {
   const adjs = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient"];
   const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill"];
-  const name = adjs[Math.floor(Math.random() * adjs.length)] +
-   "_" + nouns[Math.floor(Math.random() * nouns.length)];
+  const name = adjs[Math.floor(Math.random() * adjs.length)] + "_" + nouns[Math.floor(Math.random() * nouns.length)];
   myName = name;
   return (name);
 }
 
 function getUsername() {
-  //var name = prompt(s.enter_username,"");
-  var name = getRandomName();
+  var name;
+  if(RANDOM_NAMES) name = getRandomName();
+  else name = prompt(s.enter_username,"");
+  
   while(!name){
     var name = prompt(s.enter_username_non_empty,"");
   }
@@ -102,8 +107,6 @@ function init() {
   translate();
   updateDescriptions(true);
   resetGameState();
-  //TODO remove this test
-  hintTable.rows[1].cells[6].innerHTML = 'Line one\nLine two\nOne really long line with a lot of text in it that could cause layout problems';
 }
 
 function getMember(input) {
@@ -125,8 +128,7 @@ function repeat(n, ...fs) {
     for (var j = 0; j < n; j++) {
       fs[i]();
     }  
-  }
-  
+  }  
 }
 
 
@@ -207,6 +209,30 @@ function addMessageToListDOM(text, member) {
   addElementToListDOM(el);
 }
 
+function enableTextInput(enabled) {
+  /*for (var i = 0; i < DOM.inputs.length; i++) {
+    DOM.inputs[i].disabled = !enabled;
+  }
+  for (var i = 0; i < DOM.descriptions.length; i++) {
+    DOM.descriptions[i].disabled = !enabled;
+  }*/
+  DOM.form.disabled = !enabled;
+
+}
+
+function enableCodeDrawing(enabled) {
+  DOM.codeButton.disabled = !enabled;
+}
+
+function stringifyHint(hint) {
+  let res = '';
+  for (var i = 0; i < hint.length; i++) {
+    res+= alphabet.substring(i,i+1) + ': ' + hint[i];
+    if(i<hint.length-1) res+= ' | ';
+  }
+  return res;
+}
+
 //Getting codes
 codeButton.addEventListener("click", function () {
   if(code.length === 0){
@@ -214,18 +240,12 @@ codeButton.addEventListener("click", function () {
     randomiseCode();
     addMessageToListDOM(s.your_code_is + ' ' + code);
     updateDescriptions(false);
-    codeButton.text = s.reveal_code;
     if(!rulesShown){
       addMessageToListDOM(s.hint_rules);
       rulesShown = true;
     }
   } else{
-    alert(s.already_have_code+'\n'+code);
-    /*sendMessage('codeReveal', {'code':code}); //TODO get rid of this
-    codeButton.text = s.draw_code;
-    updateDescriptions(true);
-    code = [];
-    DOM.modeSwapButton.style.display = 'none';*/
+    alert(s.already_have_code+':\n'+code);
   }
   
 })
@@ -418,7 +438,9 @@ function updateWordsDisplay() {
       wordsDisplay += (i+1).toString() + ':' + words[i];
       if(i !== words.length-1) wordsDisplay += '  |  ';
     }  
-  } else 
+  } else  {
+    addMessageToListDOM(s.no_team);
+  }
   
   //Add game status:
   wordsDisplay += '\n\n'+ s.status+': ';
@@ -455,7 +477,7 @@ function pickNoDuplicates(list,amount,discard) {
 //Round progression
 
 function nextState() {
-  addMessageToListDOM('Incrementing state: '+gs.roundState);
+  if(DEBUG_MODE) addMessageToListDOM('Incrementing state: '+gs.roundState);
   if(gs.roundState === RS.NO_GAME) return;
   gs.roundState++;
 
@@ -476,10 +498,12 @@ function nextState() {
   if(gs.roundState === RS.ROUND_END){
     gs.currentTeam = otherTeam(gs.currentTeam);
     gs.roundState = RS.START;
+    addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
     if(gs.startingTeam === gs.currentTeam){
+      if(checkForTokenVictory()) return;
       gs.round++;
-      addMessageToListDOM(s.round_start1+' '+gs.round+' '+s.round_start2);
-      gs.startingTeam = otherTeam(gs.startingTeam);
+      addMessageToListDOM(s.round_start_1+' '+gs.round+' '+s.round_start_2);
+      if(SWAP_TEAMS) gs.startingTeam = otherTeam(gs.startingTeam);
       gs.currentTeam = gs.startingTeam;
       forceGuessMode = false;
       if(gs.round > NUMBER_OF_ROUNDS) endGame('');
@@ -487,7 +511,7 @@ function nextState() {
   }
 
   updateWordsDisplay();
-  addMessageToListDOM('New state: '+gs.roundState);
+  if(DEBUG_MODE) addMessageToListDOM('New state: '+gs.roundState);
 }
 
 //Guess processing
@@ -495,22 +519,34 @@ function nextState() {
 function processGuesses(code) {
   var currentTeam = gs.currentTeam;
   var opponents = otherTeam(currentTeam); 
-  if(gs.round > 1 && guesses[opponents].toString() === code.toString()) {
-    gs.tokens[opponents].good++;
-    addMessageToListDOM(s['gains_intercept_'+opponents]+': '+s.intercept_icon);
-  }
-  if(guesses[currentTeam].toString() !== code.toString()) {
-    gs.tokens[currentTeam].bad++;  
-    addMessageToListDOM(s['gains_failure_'+currentTeam]+': '+s.failure_icon);
-  }
-  updateMembersDOM();
   var hints = gs.hintHistory.last;
-  console.log(hints);
-  console.log(code);
+
+  //Add hints to the table
   for (var i = 0; i < code.length; i++) {
     addHintToTable(hints[i],currentTeam,code[i]-1);
     gs.hintHistory[currentTeam][code[i]-1].push(hints[i]);
   }
+
+  //Assign tokens
+  if(gs.round > 1 && gs.guesses[opponents].toString() === code.toString()) {
+    gs.tokens[opponents].good++;
+    addMessageToListDOM(s['gains_intercept_'+opponents]+': '+s.intercept_icon);
+  }
+  if(gs.guesses[currentTeam].toString() !== code.toString()) {
+    gs.tokens[currentTeam].bad++;  
+    addMessageToListDOM(s['gains_failure_'+currentTeam]+': '+s.failure_icon);
+    //Add failed guesses to the hint table
+    var guesses = gs.guesses[currentTeam];
+    for (var i = 0; i < guesses.length; i++) {
+      var guess = parseInt(guesses[i]);
+      console.log(guesses[i]);
+      console.log(code[i]);
+      if(guess.toString() !== code[i].toString() && [1,2,3,4].includes(guess)) {
+        addHintToTable('('+hints[i]+')', currentTeam, guess-1);
+      }
+    }
+  }
+  updateMembersDOM();  
 }
 
 function addHintToTable(hint,team,wordPos) {
@@ -529,7 +565,6 @@ function updateHintTable(team) {
       var cell = hintTable.rows[1].cells[i+offset];
       cell.innerHTML = '';
       for (var j = 0; j < gs.hintHistory[team][i].length; j++) {
-        console.log('Updating cell '+(i+offset)+' with '+gs.hintHistory[team][i][j]);
         addHintToTable(gs.hintHistory[team][i][j], team, i);
       }
     }  
@@ -561,29 +596,29 @@ function checkForTokenVictory() {
   if(redWin && blueWin) endGame('');
   else if(redWin) endGame('R');
   else if(blueWin) endGame('B');
+
+  return redWin || blueWin;
 }
 
 //Sending messages
 DOM.form.addEventListener('submit', sendFormMessage);
 
 function sendFormMessage() {
-  if(code.length === 0 || forceGuessMode){ //Sending a guess
+  if(!isHintGiver && (code.length === 0 || forceGuessMode)){ //Sending a guess
     if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
       || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round>1)){
         sendMessage('guess', DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y)) : x));
     }else{
       alert(s.not_your_turn);
-    }
-    
-  } else { //Sending a hint
-    if(gs.roundState === RS.START && gs.currentTeam === team){
-      sendMessage('hint', DOM.inputs.map(i=>i.value));
-      updateDescriptions(true);
-      forceGuessMode = true;
-      isHintGiver = true;
-    }else{
-      alert(s.not_your_turn);
     }    
+  }else if(!isHintGiver && gs.roundState === RS.START && gs.currentTeam === team) { //Sending a hint
+    sendMessage('hint', DOM.inputs.map(i=>i.value));
+    updateDescriptions(true);
+    forceGuessMode = true;
+    modeSwapButton.value = s.hint_mode;
+    isHintGiver = true;
+  }else{
+    alert(s.not_your_turn); 
   }
 
   DOM.inputs.forEach(i=>i.value='');  
@@ -640,7 +675,6 @@ drone.on('open', error => {
 	room.on('members', m => {
   	members = m;
     if(members.length === 1) {
-      //First to enter the room; initialise the game (TODO?)
       gs.received = true;
     }
   	updateMembersDOM(); 
@@ -659,14 +693,21 @@ drone.on('open', error => {
 	 
 	// User left the room
 	room.on('member_leave', ({id}) => {
-    addMessageToListDOM(s.left_game, getMember(id)); 
+    if(id === gs.hintGiver.id){
+      addMessageToListDOM(s.left_game_with_code, getMember(id)); 
+      gs.roundState = RS.START;
+      addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
+      updateWordsDisplay();
+    } else{
+      addMessageToListDOM(s.left_game, getMember(id));   
+    }    
     const index = members.findIndex(member => member.id === id);
     members.splice(index, 1);
     updateMembersDOM(); 
 	});
 
 	room.on('data', (data, serverMember) => {
-	  console.log(data);
+	  if(DEBUG_MODE) console.log(data);
     if (serverMember) {
       let member = getMember(serverMember);
       //console.log(member);
@@ -675,13 +716,7 @@ drone.on('open', error => {
           addMessageToListDOM(s.send_message+': '+data.content, member); 
           break;
         case 'hint': //Sent when a player offers a hint
-          let hints = data.content;
-          let res = s.sends_hint + ': ';
-          for (var i = 0; i < hints.length; i++) {
-            res+= alphabet.substring(i,i+1) + ': ' + hints[i];
-            if(i<hints.length-1) res+= ' | ';
-          }
-          addMessageToListDOM(res, member);
+          addMessageToListDOM(s.sends_hint + ': ' + stringifyHint(data.content), member);
           gs.hintGiver = member;
           gs.hintHistory.last = data.content;
 
@@ -690,7 +725,7 @@ drone.on('open', error => {
           break;
         case 'guess': //Sent when a player makes a guess
           addMessageToListDOM(s.sends_guess+': '+data.content, member); //TODO make sure it's valid
-          guesses[member.team] = data.content;
+          gs.guesses[member.team] = data.content;
           nextState();
           if(isHintGiver && gs.roundState == RS.ALLY_GUESSED){
             isHintGiver = false;            
@@ -712,7 +747,6 @@ drone.on('open', error => {
         case 'codeReveal': //Sent when a secret code is revealed
           addMessageToListDOM(s.reveals_code+': '+data.content.code, member); 
           processGuesses(data.content.code);
-          checkForTokenVictory();
           nextState();
           break;
         case 'newGame': //Sent when a new game is started
@@ -756,10 +790,14 @@ drone.on('open', error => {
             for (var i = 0; i < memberData.length; i++) {
               getMember(memberData[i]).team = memberData[i].team;
             }
+            if(gs.roundState === RS.HINT_GIVEN || gs.roundState === RS.ENEMY_GUESSED){
+              addMessageToListDOM(s.current_hint+': '+stringifyHint(gs.hintHistory.last))
+            } 
             updateRerollButton();
             updateHintTable();
+            updateMembersDOM();                
           }
-          updateMembersDOM();          
+                
           break;
         default: alert('Unkown message type received: '+data.type)
 

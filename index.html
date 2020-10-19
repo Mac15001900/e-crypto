@@ -192,33 +192,35 @@
         <td><div id="decs2">D2</div></td>
         <td><div id="decs3">D3</div></td>
       </tr><tr>
-        <td><input id="text-input" class="message-form_main_input" placeholder="s.enter_guess_here" type="text"/></td>
-        <td><input id="text-input2" class="message-form_main_input" placeholder="s.enter_guess_here" type="text"/></td>
-        <td><input id="text-input3" class="message-form_main_input" placeholder="s.enter_guess_here" type="text"/></td>
+        <td><input id="text-input"  class="message-form_main_input" data-s-placeholder="enter_guess_here" type="text"/></td>
+        <td><input id="text-input2" class="message-form_main_input" data-s-placeholder="enter_guess_here" type="text"/></td>
+        <td><input id="text-input3" class="message-form_main_input" data-s-placeholder="enter_guess_here" type="text"/></td>
         <!-- <td><input class="message-form__button button green" value="Wyślij" type="submit"/></td> -->
       </tr>
     </table>
     <table>
       <tr>
-        <td><input class="button green" value="s.send" type="submit"/></td>
-        <td><input id ="modeSwapButton" class="button green" value="s.guess_mode" style='display:none' type="button" /></td>
+        <td><input id="submitButton" class="button green" data-s-value="send" type="submit"/></td>
+        <td><input id ="modeSwapButton" class="button green" data-s-value="guess_mode" style='display:none' type="button" /></td>
       </tr>
     </table>
     
   </form>
   <hr>
 
-  <a href="#" id="codeButton" class="button green" style="display: none">s.draw_code</a>
+  <a href="#" id="codeButton" class="button green" style="display: none" data-s="draw_code"></a>
   <table style="width: 0px">
     <tr>
-      <td><a href="#" id="rerollButton" class="button green" style='display:none'>s.reroll</a></td>
-      <td><a href="#" id="redButton" class="button red">s.join_R</a></td>
-      <td><a href="#" id="blueButton" class="button blue">s.join_B</a></td>      
-      <td><a href="#" id="resetButton" class="button white" style="display: none">s.reset</a></td>
+      <td><a href="#" id="rerollButton" class="button green" style='display:none' data-s="reroll"></a></td>
+      <td><a href="#" id="redButton" class="button red" data-s="join_R"></a></td>
+      <td><a href="#" id="blueButton" class="button blue" data-s="join_B"></a></td>
+      <td><a href="#" id="langButton" class="button green" data-s="change_lang"></a></td>
+      <td><a href="#" id="resetButton" class="button white" style="display: none" data-s="reset"></a></td>
     </tr>
   </table> 
   
   
+  <script src="./pl-strings.js"></script>
   <script src="./en-strings.js"></script>
   <script src="./wordBank.js"></script>
   <script src="./script.js"></script>

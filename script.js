@@ -24,14 +24,16 @@ let rerollsLeft= 0;
 
 //Other
 let rulesShown = false;
+let lang = 'en';
+let s = enStrings;
 
 //gameState block:
 let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','currentTeam':'','roundState':RS.NO_GAME,'hintGiver':{},
   'tokens':{},'hintHistory':{},'guesses':{'R':[],'B':[]}};
 
 //Game settings
-const DEBUG_MODE = true; //Whether debug info is printed
-const RANDOM_NAMES = true; //Whether usernames are randomly generated
+const DEBUG_MODE = false; //Whether debug info is printed
+const RANDOM_NAMES = false; //Whether usernames are randomly generated
 
 const SWAP_TEAMS = false; //Whether the starting team changes each round
 const NUMER_OF_WORDS = 4; //Number of words per team (other values not yet supported)
@@ -134,6 +136,17 @@ function repeat(n, ...fs) {
 
 
 //Handle displaying things
+function updateAllUI() {
+  updateMembersDOM();
+  updateRerollButton();
+  updateHintTable();
+  updateDescriptions();
+  if(team){
+    updateWordsDisplay();
+    updateTeamStyle(team);
+  }
+}
+
 function createMemberElement(member) {
   const name = member.clientData.name;
   const el = document.createElement('div');
@@ -264,7 +277,7 @@ function randomiseCode() {
 }
 
 function updateDescriptions(guessMode) {
-  if(guessMode){
+  if(forceGuessMode || code.length===0){ //TODO or isHintGiver
     for (var i = 0; i < DOM.descriptions.length; i++) {
       DOM.descriptions[i].innerHTML = s.guess_for + ' ' + alphabet.substring(i,i+1);
       DOM.inputs[i].placeholder = s.enter_guess_here;
@@ -539,10 +552,9 @@ function processGuesses(code) {
     var guesses = gs.guesses[currentTeam];
     for (var i = 0; i < guesses.length; i++) {
       var guess = parseInt(guesses[i]);
-      console.log(guesses[i]);
-      console.log(code[i]);
       if(guess.toString() !== code[i].toString() && [1,2,3,4].includes(guess)) {
         addHintToTable('('+hints[i]+')', currentTeam, guess-1);
+        gs.hintHistory[currentTeam][code[i]-1].push('('+hints[i]+')');
       }
     }
   }
@@ -640,7 +652,7 @@ function sendMessage(type, content) {
 
 //Translate HTML elements
 function translate() {
-  var allDom = document.getElementsByTagName("*");
+  /*var allDom = document.getElementsByTagName("*");
     for(var i =0; i < allDom.length; i++){
       var elem = allDom[i]; 
       var key = elem.innerHTML;
@@ -651,10 +663,37 @@ function translate() {
       } else if (elem.placeholder && elem.placeholder.substring(0,2) === "s.") {
         elem.placeholder = s[elem.placeholder.substring(2)];
       } 
+    }*/
+  var allDom = document.getElementsByTagName("*");
+    for(var i =0; i < allDom.length; i++){
+      var elem = allDom[i];
+      var data = elem.dataset;
+      if(data.s) elem.innerHTML = s[data.s];
+      if(data.sInnerHTML) elem.innerHTML = s[data.sInnerHTML];
+      if(data.sValue) elem.value = s[data.sValue];
+      if(data.sPlaceholder) elem.placeholder = s[data.sPlaceholder];      
     }
 }
 
 init();
+
+langButton.addEventListener("click",changeLang);
+
+function changeLang() {
+  //TODO GUI to choose it
+  if(lang === 'en'){
+    lang='pl';
+    s = plStrings;
+
+  } else {
+    lang = 'en';
+    s = enStrings;
+  }
+  translate();
+  updateAllUI();
+  //Rebuild the word pool
+
+}
 
 //Room connection
 drone.on('open', error => {
@@ -731,8 +770,8 @@ drone.on('open', error => {
             isHintGiver = false;            
             sendMessage('codeReveal', {'code':code});
             codeButton.text = s.draw_code; //TODO remove this phase of the button
-            updateDescriptions(true);
             code = [];
+            updateDescriptions(true);            
             DOM.modeSwapButton.style.display = 'none';            
           }
           break;
@@ -793,9 +832,7 @@ drone.on('open', error => {
             if(gs.roundState === RS.HINT_GIVEN || gs.roundState === RS.ENEMY_GUESSED){
               addMessageToListDOM(s.current_hint+': '+stringifyHint(gs.hintHistory.last))
             } 
-            updateRerollButton();
-            updateHintTable();
-            updateMembersDOM();                
+            updateAllUI();
           }
                 
           break;

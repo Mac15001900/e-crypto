@@ -40,8 +40,8 @@ const NUMER_OF_WORDS = 4; //Number of words per team (other values not yet suppo
 const REROLLS_PER_GAME = 2; //How many rerolls does each team get at the start
 const NUMBER_OF_ROUNDS = 8; //How many rounds are there
 const TOKENS_NEEDED = 2; //How many tokens are needed to win
-const wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat(); //Pool the words are drawn from
-const rerollWordPool = [wordBank.en_basic].flat(); //Pool words are drawn from after reroll
+let wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat(); //Pool the words are drawn from
+let rerollWordPool = [wordBank.en_basic].flat(); //Pool words are drawn from after reroll
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 //UI settings
@@ -54,12 +54,6 @@ const BLUE_BACKGROUND = '#00bfff5c';//'#469ae4';//"#00bfff5c"; #56affd
 //Network settings
 const ROOM_NAME = 'observable-room';
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
-const drone = new ScaleDrone(CHANNEL_ID, {
-  data: { // Will be sent out as clientData via events
-    name: getUsername(),
-    color: "#000000",
-  },
-});
 
 const DOM = {
   secretWordsDisplay: document.querySelector('#secretWordsDisplay'),
@@ -106,6 +100,7 @@ function getRandomColor() {
 //Utility functions
 
 function init() {
+  if(navigator.language === 'pl') changeLang(); //TODO support more languages
   translate();
   updateDescriptions(true);
   resetGameState();
@@ -511,7 +506,6 @@ function nextState() {
   if(gs.roundState === RS.ROUND_END){
     gs.currentTeam = otherTeam(gs.currentTeam);
     gs.roundState = RS.START;
-    addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
     if(gs.startingTeam === gs.currentTeam){
       if(checkForTokenVictory()) return;
       gs.round++;
@@ -521,6 +515,7 @@ function nextState() {
       forceGuessMode = false;
       if(gs.round > NUMBER_OF_ROUNDS) endGame('');
     }
+    addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
   }
 
   updateWordsDisplay();
@@ -625,8 +620,8 @@ function sendFormMessage() {
     }    
   }else if(!isHintGiver && gs.roundState === RS.START && gs.currentTeam === team) { //Sending a hint
     sendMessage('hint', DOM.inputs.map(i=>i.value));
-    updateDescriptions(true);
     forceGuessMode = true;
+    updateDescriptions();
     modeSwapButton.value = s.hint_mode;
     isHintGiver = true;
   }else{
@@ -675,8 +670,6 @@ function translate() {
     }
 }
 
-init();
-
 langButton.addEventListener("click",changeLang);
 
 function changeLang() {
@@ -692,10 +685,25 @@ function changeLang() {
   translate();
   updateAllUI();
   //Rebuild the word pool
+  wordPool = convertToWordPool(s.default_words);
+  rerollWordPool = convertToWordPool(s.reroll_words);
 
 }
 
+function convertToWordPool(poolsList) {
+  return poolsList.map(x=>wordBank[x]).flat();
+
+}
+
+init();
+
 //Room connection
+const drone = new ScaleDrone(CHANNEL_ID, {
+  data: { // Will be sent out as clientData via events
+    name: getUsername(),
+  },
+});
+
 drone.on('open', error => {
 	 if (error) {
 	   return console.error(error);
@@ -785,6 +793,7 @@ drone.on('open', error => {
           break;
         case 'codeReveal': //Sent when a secret code is revealed
           addMessageToListDOM(s.reveals_code+': '+data.content.code, member); 
+          gs.hintGiver = {};
           processGuesses(data.content.code);
           nextState();
           break;

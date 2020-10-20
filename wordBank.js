@@ -17,7 +17,7 @@ var wordBank = {
 var wordBankDescriptions = {
 	"en_basic" : {"name": "Basics","description": "List of 600 'most important' English nouns according to Charles K. Ogden, with very small tweaks.", "language":"English"},
 	"en_tech" : {"name": "Tech","description": "Some Computer Science related words.", "language":"English"},
-	"en_pokemon_types" : {"name": "Pokemon types","description": "Pokemon types. Short list of very evocative words.", "language":"English"},
+	"en_pokemon_types" : {"name": "Pokemon types","description": "Pokemon types. A short list of very evocative words.", "language":"English"},
 	"en_video_games" : {"name": "Names of video games","description": "A list of most sold video games/franchises, plus some most played free ones.", "language":"English"},
 	"en_fantasy" : {"name": "Fantasy","description": "Words broadly related to fantasy (spells,races,monsters etc).", "language":"English"},
 	"en_physics" : {"name": "Physics","description": "Physics-related words, relatively simple ones. Should be accessible after a typical high-school physics course.", "language":"English"},

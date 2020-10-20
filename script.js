@@ -100,10 +100,10 @@ function getRandomColor() {
 //Utility functions
 
 function init() {
-  if(navigator.language === 'pl') changeLang(); //TODO support more languages
-  translate();
-  updateDescriptions(true);
   resetGameState();
+  if(navigator.language === 'pl') changeLang(); //TODO support more languages
+  updateDescriptions(true);
+  translate();
 }
 
 function getMember(input) {

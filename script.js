@@ -647,18 +647,6 @@ function sendMessage(type, content) {
 
 //Translate HTML elements
 function translate() {
-  /*var allDom = document.getElementsByTagName("*");
-    for(var i =0; i < allDom.length; i++){
-      var elem = allDom[i]; 
-      var key = elem.innerHTML;
-      if (elem.innerHTML.substring(0,2) === "s.") {
-        elem.innerHTML = s[elem.innerHTML.substring(2)];
-      } else if (elem.value && elem.value.substring(0,2) === "s.") {
-        elem.value = s[elem.value.substring(2)];
-      } else if (elem.placeholder && elem.placeholder.substring(0,2) === "s.") {
-        elem.placeholder = s[elem.placeholder.substring(2)];
-      } 
-    }*/
   var allDom = document.getElementsByTagName("*");
     for(var i =0; i < allDom.length; i++){
       var elem = allDom[i];

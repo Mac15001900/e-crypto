@@ -14,7 +14,7 @@ let team = '';
 let nextTeam = ''; //Team we'll switch to next game
 
 //Hint giver variables
-let isHintGiver = false; //True between giving out a hint and releaving the code.
+let isHintGiver = false; //True between giving out a hint and revealing the code.
 let code = [];
 let forceGuessMode = false; //UI variable
 
@@ -52,8 +52,9 @@ const RED_BACKGROUND = "#ed143d6b";
 const BLUE_BACKGROUND = '#00bfff5c';//'#469ae4';//"#00bfff5c"; #56affd
 
 //Network settings
-const ROOM_NAME = 'observable-room';
+const ROOM_BASE = 'observable-main-'
 const CHANNEL_ID = '5WQg2mc3UkqAxomd';
+let roomName = null; //Need the interface to load before it can be selected
 
 const DOM = {
   secretWordsDisplay: document.querySelector('#secretWordsDisplay'),
@@ -72,7 +73,7 @@ const DOM = {
   hintTable: document.querySelector('#hintTable'),
 };
 
-//Name & color generation
+//Name & room selection
 function getRandomName() {
   const adjs = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient"];
   const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill"];
@@ -92,9 +93,20 @@ function getUsername() {
   myName = name;
   return(name);
 }
- 
-function getRandomColor() {
- return '#' + Math.floor(Math.random() * 0.8 * 0xFFFFFF).toString(16);
+
+function getRoom(){
+  if(roomName) return roomName;
+
+  //Try to get it from the URL
+  var roomFromURL = (new URLSearchParams(window.location.search)).get('room');
+  if(roomFromURL) return roomFromURL;
+
+  //If that fails, ask the user for it
+  var chosenName = prompt(s.enter_room_name);
+  while(!chosenName) chosenName = prompt(s.enter_room_name);
+  var shareableLink = encodeURI(window.location.origin + window.location.pathname + "?room=" + chosenName);
+  addMessageToListDOM(s.shareable_link+" "+shareableLink);
+  return chosenName;
 }
 
 //Utility functions
@@ -104,6 +116,7 @@ function init() {
   if(navigator.language === 'pl') changeLang(); //TODO support more languages
   updateDescriptions(true);
   translate();
+  roomName = ROOM_BASE + getRoom();
 }
 
 function getMember(input) {
@@ -201,7 +214,7 @@ function addElementToListDOM(element) {
   }
 }
  
-function addMessageToListDOM(text, member) {
+function addMessageToListDOM(text, member, color='black', important=false) {
   if(text.includes('\n')){
     let messages = text.split('\n');
     for (var i = 0; i < messages.length; i++) {
@@ -210,6 +223,8 @@ function addMessageToListDOM(text, member) {
     return;
   }
   const el = document.createElement('div');
+  el.style.color = color;
+  if(important) el.style['font-weight'] = 'bold';
   if(member) el.appendChild(createMemberElement(member));
   el.appendChild(document.createTextNode(text));
   el.className = 'message';
@@ -549,7 +564,8 @@ function processGuesses(code) {
       var guess = parseInt(guesses[i]);
       if(guess.toString() !== code[i].toString() && [1,2,3,4].includes(guess)) {
         addHintToTable('('+hints[i]+')', currentTeam, guess-1);
-        gs.hintHistory[currentTeam][code[i]-1].push('('+hints[i]+')');
+        //gs.hintHistory[currentTeam][code[i]-1].push('('+hints[i]+')');
+        gs.hintHistory[currentTeam][guess-1].push('('+hints[i]+')');
       }
     }
   }
@@ -583,13 +599,14 @@ function updateHintTable(team) {
 //Ending the game
 function endGame(winningTeam) {
   gs.roundState = RS.NO_GAME;
-  if(winningTeam) addMessageToListDOM(s['game_end_'+winningTeam]);
+  if(winningTeam) addMessageToListDOM(s['game_end_'+winningTeam],null, winningTeam==='R' ? RED_TEAM_COLOR : BLUE_TEAM_COLOR, true);
   else {
     var pointDifference = (gs.tokens.R.good - gs.tokens.R.bad) - (gs.tokens.B.good - gs.tokens.B.bad);
     if(pointDifference === 0) addMessageToListDOM(s.game_end_tie); //TODO further tiebreaker  
     else if(pointDifference > 0) endGame('R');
     else if(pointDifference < 0) endGame('B');    
   }
+  updateWordsDisplay();
 }
 
 function checkForTokenVictory() {
@@ -611,10 +628,18 @@ function checkForTokenVictory() {
 DOM.form.addEventListener('submit', sendFormMessage);
 
 function sendFormMessage() {
+  if(DOM.inputs[0].value.toLowerCase() === 'almu' && DOM.inputs[1].value === ''){
+    if(lang === 'en') changeLang();
+    addMessageToListDOM("Tajny tryb Almu aktywowany.");
+    wordPool = [wordBank.pl_almu,wordBank.pl_basic, wordBank.pl_fantasy, wordBank.pl_fizyka, wordBank.pl_typy_pokemonów].flat();
+    DOM.inputs[0].value='';
+    return;
+  }
+
   if(!isHintGiver && (code.length === 0 || forceGuessMode)){ //Sending a guess
     if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
       || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round>1)){
-        sendMessage('guess', DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y)) : x));
+        sendMessage('guess', DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y))+1 : x));
     }else{
       alert(s.not_your_turn);
     }    
@@ -637,7 +662,7 @@ function wordsEqual(word1, word2) {
 
 function sendMessage(type, content) {
   drone.publish({
-    room: ROOM_NAME,
+    room: getRoom(),
     message: {
       type: type,
       content: content
@@ -698,7 +723,7 @@ drone.on('open', error => {
 	 }
 	 console.log('Successfully connected to Scaledrone');
 	 
-	 const room = drone.subscribe('observable-room');
+	 const room = drone.subscribe(getRoom());
 	 room.on('open', error => {
 	   if (error) {
 	     return console.error(error);
@@ -833,6 +858,9 @@ drone.on('open', error => {
           }
                 
           break;
+        case 'emergencyCode':
+          gs.emergencyCode = data.content;
+          break;
         default: alert('Unkown message type received: '+data.type)
 
       }
@@ -843,3 +871,8 @@ drone.on('open', error => {
 });
 
 });
+
+function beforeClosing(){
+  if(isHintGiver) sendMessage('emergencyCode',code);
+}
+window.onunload = beforeClosing;

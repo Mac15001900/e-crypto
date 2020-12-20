@@ -29,6 +29,8 @@ var plStrings = {
 	"reset": "Zacznij nową grę",
 	"enter_username": "Podaj swoją nazwę użytkownika. Najlepiej taką samą jak na czacie głosowym.",
 	"enter_username_non_empty": "Wpisz swoją nazwę użytkownika (nie może być pusta). Najlepiej taką samą jak na czacie głosowym.",
+	"enter_room_name": "Wpisz nazwę pokoju aby do niego dołączyć lub stworzyć nowy.",
+	"shareable_link": "Link zapraszający do tego pokoju:",
 	"confirm_reset": "Czy na pewno chcesz zacząć nową grę?",
 	"started_new_game": "zaczyna nową grę!",
 	"secret_words": "Twoje tajne słowa",
@@ -76,12 +78,13 @@ var plStrings = {
 	"status_2_B": "Czerwona drużyna odgaduje kod niebieskich.",
 	"status_3_R": "Czerwona drużyna odgaduje swój kod.",
 	"status_3_B": "Niebieska drużyna odgaduje swój kod.",
-	"status_4": "Oczewikanie na ujawnienie tajnego kodu.",
+	"status_4": "Oczekiwanie na ujawnienie tajnego kodu.",
 	"status_5": "Przetwarzanie końca rundy.",
 	"confirm_hint_override": "W grze jest już aktywna podpowiedź. Jeśli dasz kolejną teraz, to poprzednia zostanie nadpisana. Czy na pewno chcesz to zrobić?\n Użyj tej opjci tylko wtedy, gdy dający podpowiedź opóści grę.",
 	"no_team": "Nie należysz jeszcze do żadnej drużyny.",
 	"current_hint": "Aktualna wskazówka to",
 	"change_lang" : "Zmień język",
+	"reveal_words" : "Ujawnij tajne słowa",
 	
 
 }

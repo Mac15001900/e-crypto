@@ -49,7 +49,9 @@ var plStrings = {
 	"rerolls_gone": "Wymiany słów nie są już dostępne.",
 	"hint_rules": "Nie możesz wspominać ani w żaden sposób sugerować jaki jest twój kod, dopóki nie zostanie ujawniony. \nMusisz stworzyć podpowiedź dla każdego z poniższych słów, przestrzegając tych dwóch zasad: \n1. Twoja podpowiedź nie może zawierać żadnego z twoich tajnych słów. \n2. Twoja podpowiedź musi odnosić się do znaczenia odpowiadającego jej tajnego słowa; podpowiedzi odnoszące się do poszczególnych liter, cyfr wyrazów, rymów itp.\nW przeciwieństwie do Tajniaków, podpowiedzi *mogą* zawierać wiele słów, liczby, znaki specjalnych, emoji itp.",
 	"intercept_icon": "🔑",
-	"failure_icon": "⁉",
+	"failure_icon": "☠️",
+	"code_icon" : "🧾",
+	"swap_icon" : "🔀",
 	"not_your_turn": "Jeszcze nie twoja kolej.",
 	"game_end_tie": "Ostatnia runda się skończyła! Łamanie remisów nie zostało jeszcze zaimplementowane, więc będziecie musieli zrobić to sami ;)",
 	"game_end_R": "Czerwona drużyna wygrała!",
@@ -85,6 +87,6 @@ var plStrings = {
 	"current_hint": "Aktualna wskazówka to",
 	"change_lang" : "Zmień język",
 	"reveal_words" : "Ujawnij tajne słowa",
-	
+	"reveals_words" : "Ujawnia swoje tajne słowa",
 
 }

@@ -71,6 +71,7 @@ const DOM = {
   descriptions: [document.querySelector('#decs1'), document.querySelector('#decs2'), document.querySelector('#decs3')],
   inputs: [document.querySelector('#text-input'), document.querySelector('#text-input2'), document.querySelector('#text-input3')],
   hintTable: document.querySelector('#hintTable'),
+  revealButton: document.querySelector('#revealButton'),
 };
 
 //Name & room selection
@@ -153,6 +154,7 @@ function updateAllUI() {
     updateWordsDisplay();
     updateTeamStyle(team);
   }
+  if(gs.gameState != RS.NO_GAME) DOM.revealButton.style.display = 'none';
 }
 
 function createMemberElement(member) {
@@ -160,7 +162,9 @@ function createMemberElement(member) {
   const el = document.createElement('div');
   var content = name;
   if(name === myName) content += " (" + s.you+ ")";
-  if(member.team) content  += createVisualTokens(member.team);
+  if(member.team) content += createVisualTokens(member.team);
+  if(member.codeDrawn) content += s.code_icon;
+  if(member.switchingTeams) content += s.swap_icon;
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
   el.style.color = getTeamColor(member.team);
@@ -336,6 +340,7 @@ function switchToTeam(newTeam) {
   }
   else {
     nextTeam = newTeam;
+    sendMessage('teamSwitchIntent', newTeam);
     alert(s.switch_after_game);
   }
   nextTeam = newTeam;
@@ -390,6 +395,12 @@ function reroll(word) {
   sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
 }
 
+//Trolling people
+Object.defineProperty(window, 'wordsEnemy', { get: function() { 
+  window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  return "Trololololo";
+} });
+
 
 //Starting a new game
 
@@ -416,7 +427,9 @@ function receiveNewGame(data) {
     updateDescriptions(true);
     forceGuessMode = false;
   }
+
   words = [];
+  DOM.revealButton.style.display = 'none';
   if(team === 'R') {
     words = data.wordsRed;
     secretWordsDisplay.style.backgroundColor = RED_BACKGROUND;
@@ -424,13 +437,14 @@ function receiveNewGame(data) {
   if(team === 'B')  {
      words = data.wordsBlue;
      secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
-  }
-  
+  }  
 
   if(team){
     rerollsLeft = REROLLS_PER_GAME;
     updateRerollButton();  
-  }  
+  }
+
+  members.forEach(m=>m.codeDrawn = false);
 
   addMessageToListDOM(s['starts_'+data.startingTeam]);
   resetGameState(data.startingTeam);
@@ -607,6 +621,7 @@ function endGame(winningTeam) {
     else if(pointDifference < 0) endGame('B');    
   }
   updateWordsDisplay();
+  DOM.revealButton.style.display = 'block';
 }
 
 function checkForTokenVictory() {
@@ -622,6 +637,13 @@ function checkForTokenVictory() {
   else if(blueWin) endGame('B');
 
   return redWin || blueWin;
+}
+
+DOM.revealButton.addEventListener('click', revealSecretWords);
+
+function revealSecretWords(){
+  DOM.revealButton.style.display = 'none';
+  sendMessage('wordReveal', words);
 }
 
 //Sending messages
@@ -705,8 +727,8 @@ function changeLang() {
 
 function convertToWordPool(poolsList) {
   return poolsList.map(x=>wordBank[x]).flat();
-
 }
+
 
 init();
 
@@ -716,6 +738,10 @@ const drone = new ScaleDrone(CHANNEL_ID, {
     name: getUsername(),
   },
 });
+
+function isDebugger(member){
+  return member.authData && member.authData.user_is_from_scaledrone_debugger;
+}
 
 drone.on('open', error => {
 	 if (error) {
@@ -733,7 +759,7 @@ drone.on('open', error => {
 	 
 	 // List of currently online members, emitted once
 	room.on('members', m => {
-  	members = m;
+  	members = m.filter(x=>!isDebugger(x));
     if(members.length === 1) {
       gs.received = true;
     }
@@ -742,6 +768,7 @@ drone.on('open', error => {
 	 
 	// User joined the room
 	room.on('member_join', member => {
+    if(isDebugger(member)) return;
 	  members.push(member);
     addMessageToListDOM(s.joined_game, member); 
     if(gs.received){
@@ -753,6 +780,7 @@ drone.on('open', error => {
 	 
 	// User left the room
 	room.on('member_leave', ({id}) => {
+    if(!getMember(id)) return; //If they don't exist, it was probably the debugger
     if(id === gs.hintGiver.id){
       addMessageToListDOM(s.left_game_with_code, getMember(id)); 
       gs.roundState = RS.START;
@@ -773,10 +801,15 @@ drone.on('open', error => {
       //console.log(member);
       switch(data.type){
         case 'general': //General message to be displayed to the user
-          addMessageToListDOM(s.send_message+': '+data.content, member); 
+          addMessageToListDOM(s.sends_message+': '+data.content, member); 
+          break;
+        case 'debug': //Only used for testing
+          console.log(data.content);
           break;
         case 'hint': //Sent when a player offers a hint
           addMessageToListDOM(s.sends_hint + ': ' + stringifyHint(data.content), member);
+          member.codeDrawn = false;
+          updateMembersDOM();
           gs.hintGiver = member;
           gs.hintHistory.last = data.content;
 
@@ -788,7 +821,7 @@ drone.on('open', error => {
           gs.guesses[member.team] = data.content;
           nextState();
           if(isHintGiver && gs.roundState == RS.ALLY_GUESSED){
-            isHintGiver = false;            
+            isHintGiver = false;
             sendMessage('codeReveal', {'code':code});
             codeButton.text = s.draw_code; //TODO remove this phase of the button
             code = [];
@@ -796,7 +829,9 @@ drone.on('open', error => {
             DOM.modeSwapButton.style.display = 'none';            
           }
           break;
-        case 'codeDrawn':
+        case 'codeDrawn': //Sent when a player drawn a code
+          member.codeDrawn = true;
+          updateMembersDOM();
           addMessageToListDOM(s.draws_code, member); 
           if(member.team === team && rerollsLeft>0){
             rerollsLeft = 0;
@@ -816,7 +851,13 @@ drone.on('open', error => {
           break;
         case 'teamSwitch': //Sent when a player joins a team - *not* when they decide they'll switch next game
           member.team = data.content;
+          member.switchingTeams = false;
           addMessageToListDOM(s['joins_'+data.content], member);
+          updateMembersDOM();
+          break;
+        case 'teamSwitchIntent':
+          if(data.content === member.team) member.switchingTeams = false;
+          else member.switchingTeams = true;
           updateMembersDOM();
           break;
         case 'rerollUsed': //sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
@@ -849,7 +890,8 @@ drone.on('open', error => {
             gs = data.content;
             let memberData = gs.memberData;
             for (var i = 0; i < memberData.length; i++) {
-              getMember(memberData[i]).team = memberData[i].team;
+              getMember(memberData[i]).team      = memberData[i].team;
+              getMember(memberData[i]).codeDrawn = memberData[i].codeDrawn;
             }
             if(gs.roundState === RS.HINT_GIVEN || gs.roundState === RS.ENEMY_GUESSED){
               addMessageToListDOM(s.current_hint+': '+stringifyHint(gs.hintHistory.last))
@@ -860,6 +902,10 @@ drone.on('open', error => {
           break;
         case 'emergencyCode':
           gs.emergencyCode = data.content;
+          break;
+        case 'wordReveal':
+          addMessageToListDOM(s.reveals_words+': '+data.content.toString().replaceAll(',', ', '), member);
+          if(member.team == team) DOM.revealButton.style.display = 'none';
           break;
         default: alert('Unkown message type received: '+data.type)
 

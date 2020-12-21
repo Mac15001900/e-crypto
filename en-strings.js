@@ -49,7 +49,9 @@ var enStrings = {
 	"rerolls_gone" : "Rerolls are no longer available",
 	"hint_rules" : "You cannot mention or in any way hint at what your code is until it's revealed. \nYou need to create a hint for each of the words below, each obeying those two rules:\n 	1. Your hint can't contain any of your secret words\n 	2. Your hint has to refer to the meaning of the corresponding secret word; hints relating to individual letters, word numbers, rhymes etc are not allowed.\nUnlike in Codenames, hints *can* contain multiple words, numbers, special characters, emojis etc.",
 	"intercept_icon" : "🔑",
-	"failure_icon" : "⁉",
+	"failure_icon" : "☠️",
+	"code_icon" : "🧾", //Candidates: 🧾, 🗂️, 💼, ✉️
+	"swap_icon" : "🔀",
 	"not_your_turn" : "It's not your turn to do this yet",
 	"game_end_tie" : "The last round has finished! Tie breaking hasn't been implemented yet, so you'll have to do it yourself  ;)",
 	"game_end_R" : "The red team has won!",
@@ -85,6 +87,7 @@ var enStrings = {
 	"current_hint" : "The current hint is",
 	"change_lang" : "Change language",
 	"reveal_words" : "Reveal secret words",
+	"reveals_words" : "Reveals their secret words",
 	"" : "",
 	"" : "",
 	"" : "",

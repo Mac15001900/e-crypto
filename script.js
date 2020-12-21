@@ -391,7 +391,8 @@ function askAboutReroll() {
 }
 
 function reroll(word) {
-  let newWord = rerollWordPool[Math.floor(Math.random()*rerollWordPool.length)].toUpperCase();
+  let pool = convertToWordPool(gs.hintLanguage === "en" ? enStrings.reroll_words : plStrings.reroll_words); //TODO language
+  let newWord = pool[Math.floor(Math.random()*pool.length)].toUpperCase();
   sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
 }
 
@@ -411,7 +412,7 @@ function newGame() {
     var newWordsRed = pickNoDuplicates(wordPool,NUMER_OF_WORDS*2).map(s=>s.toUpperCase());
     var newWordsBlue = newWordsRed.splice(0,NUMER_OF_WORDS);
     var newStartingTeam = Math.random()<0.5 ? 'R' : 'B';
-    sendMessage('newGame', {'wordsRed':newWordsRed, 'wordsBlue':newWordsBlue, 'startingTeam':newStartingTeam});
+    sendMessage('newGame', {wordsRed:newWordsRed, wordsBlue:newWordsBlue, startingTeam:newStartingTeam, language:lang});
   }
 }
 
@@ -450,6 +451,7 @@ function receiveNewGame(data) {
   resetGameState(data.startingTeam);
   gs.received = true;
   gs.roundState = RS.START;
+  gs.hintLanguage = data.language;
 
   updateWordsDisplay();
   updateMembersDOM();
@@ -849,13 +851,13 @@ drone.on('open', error => {
           addMessageToListDOM(s.started_new_game, member);
           receiveNewGame(data.content);
           break;
-        case 'teamSwitch': //Sent when a player joins a team - *not* when they decide they'll switch next game
+        case 'teamSwitch': //Sent when a player joins a team (not when they decide they'll switch next game)
           member.team = data.content;
           member.switchingTeams = false;
           addMessageToListDOM(s['joins_'+data.content], member);
           updateMembersDOM();
           break;
-        case 'teamSwitchIntent':
+        case 'teamSwitchIntent': //Sent when a player changes which team they'll be in next round (could be the same as now if they change twice)
           if(data.content === member.team) member.switchingTeams = false;
           else member.switchingTeams = true;
           updateMembersDOM();

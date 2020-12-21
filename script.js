@@ -569,11 +569,11 @@ function processGuesses(code) {
   //Assign tokens
   if(gs.round > 1 && gs.guesses[opponents].toString() === code.toString()) {
     gs.tokens[opponents].good++;
-    addMessageToListDOM(s['gains_intercept_'+opponents]+': '+s.intercept_icon);
+    addMessageToListDOM(s['gains_intercept_'+opponents]+' '+s.intercept_icon);
   }
   if(gs.guesses[currentTeam].toString() !== code.toString()) {
     gs.tokens[currentTeam].bad++;  
-    addMessageToListDOM(s['gains_failure_'+currentTeam]+': '+s.failure_icon);
+    addMessageToListDOM(s['gains_failure_'+currentTeam]+' '+s.failure_icon);
     //Add failed guesses to the hint table
     var guesses = gs.guesses[currentTeam];
     for (var i = 0; i < guesses.length; i++) {

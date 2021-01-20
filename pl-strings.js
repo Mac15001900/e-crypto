@@ -88,5 +88,6 @@ var plStrings = {
 	"change_lang" : "Zmień język",
 	"reveal_words" : "Ujawnij tajne słowa",
 	"reveals_words" : "Ujawnia swoje tajne słowa",
+	"code_was" : "Tajnym kodem było",
 
 }

@@ -24,6 +24,7 @@ let rerollsLeft= 0;
 
 //Other
 let rulesShown = false;
+let savedInputs = {};
 let lang = 'en';
 let s = enStrings;
 
@@ -32,15 +33,15 @@ let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','curr
   'tokens':{},'hintHistory':{},'guesses':{'R':[],'B':[]}};
 
 //Game settings
-const DEBUG_MODE = false; //Whether debug info is printed
-const RANDOM_NAMES = false; //Whether usernames are randomly generated
+const DEBUG_MODE = true; //Whether debug info is printed
+const RANDOM_NAMES = true; //Whether usernames are randomly generated
 
 const SWAP_TEAMS = false; //Whether the starting team changes each round
 const NUMER_OF_WORDS = 4; //Number of words per team (other values not yet supported)
-const REROLLS_PER_GAME = 2; //How many rerolls does each team get at the start
+const REROLLS_PER_GAME = 2; //How many rerolls does each team get
 const NUMBER_OF_ROUNDS = 8; //How many rounds are there
 const TOKENS_NEEDED = 2; //How many tokens are needed to win
-let wordPool = [wordBank.en_basic,wordBank.en_pokemon_types,wordBank.en_fantasy].flat(); //Pool the words are drawn from
+let wordPool = [wordBank.en_basic, wordBank.en_pokemon_types, wordBank.en_fantasy].flat(); //Pool the words are drawn from
 let rerollWordPool = [wordBank.en_basic].flat(); //Pool words are drawn from after reroll
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -98,6 +99,8 @@ function getUsername() {
 function getRoom(){
   if(roomName) return roomName;
 
+  if(DEBUG_MODE) return "dev";
+
   //Try to get it from the URL
   var roomFromURL = (new URLSearchParams(window.location.search)).get('room');
   if(roomFromURL) return roomFromURL;
@@ -112,6 +115,7 @@ function getRoom(){
 
 //Utility functions
 
+//Initialises the game, called before 
 function init() {
   resetGameState();
   if(navigator.language === 'pl') changeLang(); //TODO support more languages
@@ -161,7 +165,7 @@ function createMemberElement(member) {
   const name = member.clientData.name;
   const el = document.createElement('div');
   var content = name;
-  if(name === myName) content += " (" + s.you+ ")";
+  if(member.id === drone.clientId) content += " (" + s.you+ ")";
   if(member.team) content += createVisualTokens(member.team);
   if(member.codeDrawn) content += s.code_icon;
   if(member.switchingTeams) content += s.swap_icon;
@@ -218,7 +222,7 @@ function addElementToListDOM(element) {
   }
 }
  
-function addMessageToListDOM(text, member, color='black', important=false) {
+function addMessageToListDOM(text, member, important=false, color='black') {
   if(text.includes('\n')){
     let messages = text.split('\n');
     for (var i = 0; i < messages.length; i++) {
@@ -310,12 +314,23 @@ DOM.modeSwapButton.addEventListener("click",swapMode);
 
 function swapMode() {
   forceGuessMode = !forceGuessMode;
+  let inputValues = DOM.inputs.map(i=>i.value);
   if(forceGuessMode){
     updateDescriptions(true);
     modeSwapButton.value = s.hint_mode;
+    savedInputs.guesses = inputValues;
+    setInputs(savedInputs.hints);
   } else {
     updateDescriptions(false);
     modeSwapButton.value = s.guess_mode;
+    savedInputs.hints = inputValues;
+    setInputs(savedInputs.guesses);
+  }
+}
+
+function setInputs(newValues){
+  for (var i = 0; i < newValues.length; i++) {
+    DOM.inputs[i].value = newValues[i];
   }
 }
 
@@ -393,6 +408,7 @@ function askAboutReroll() {
 function reroll(word) {
   let pool = convertToWordPool(gs.hintLanguage === "en" ? enStrings.reroll_words : plStrings.reroll_words); //TODO language
   let newWord = pool[Math.floor(Math.random()*pool.length)].toUpperCase();
+  while(words.includes(newWord)) newWord = pool[Math.floor(Math.random()*pool.length)].toUpperCase();
   sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
 }
 
@@ -467,6 +483,10 @@ function resetGameState(startingTeam) {
   gs.tokens = {R:{good:0,bad:0}, B:{good:0,bad:0}};
   gs.hintHistory = {last:[],R:[],B:[]};
   repeat(NUMER_OF_WORDS, ()=>gs.hintHistory.R.push([]), ()=>gs.hintHistory.B.push([]));
+  gs.emergencyCode = undefined;
+  gs.useEmergencyCode = false;
+  savedInputs = {hints:[], guesses:[]};
+  repeat(NUMER_OF_WORDS-1, ()=>savedInputs.hints.push(""), ()=>savedInputs.guesses.push(""));
 }
 
 function updateWordsDisplay() {
@@ -540,7 +560,7 @@ function nextState() {
     if(gs.startingTeam === gs.currentTeam){
       if(checkForTokenVictory()) return;
       gs.round++;
-      addMessageToListDOM(s.round_start_1+' '+gs.round+' '+s.round_start_2);
+      addMessageToListDOM(s.round_start_1+' '+gs.round+' '+s.round_start_2, null, true);
       if(SWAP_TEAMS) gs.startingTeam = otherTeam(gs.startingTeam);
       gs.currentTeam = gs.startingTeam;
       forceGuessMode = false;
@@ -562,8 +582,8 @@ function processGuesses(code) {
 
   //Add hints to the table
   for (var i = 0; i < code.length; i++) {
-    addHintToTable(hints[i],currentTeam,code[i]-1);
-    gs.hintHistory[currentTeam][code[i]-1].push(hints[i]);
+    addHintToTable(hints[i],currentTeam,code[i]-1, true);
+    //gs.hintHistory[currentTeam][code[i]-1].push(hints[i]);
   }
 
   //Assign tokens
@@ -579,19 +599,20 @@ function processGuesses(code) {
     for (var i = 0; i < guesses.length; i++) {
       var guess = parseInt(guesses[i]);
       if(guess.toString() !== code[i].toString() && [1,2,3,4].includes(guess)) {
-        addHintToTable('('+hints[i]+')', currentTeam, guess-1);
+        addHintToTable('('+hints[i]+')', currentTeam, guess-1, true);
         //gs.hintHistory[currentTeam][code[i]-1].push('('+hints[i]+')');
-        gs.hintHistory[currentTeam][guess-1].push('('+hints[i]+')');
+        //gs.hintHistory[currentTeam][guess-1].push('('+hints[i]+')');
       }
     }
   }
   updateMembersDOM();  
 }
 
-function addHintToTable(hint,team,wordPos) {
+function addHintToTable(hint,team,wordPos, saveToHistory=false) {
   var cell = hintTable.rows[1].cells[wordPos+(team==='R'? 0:4)]
   if(!cell.innerHTML) cell.innerHTML = hint;
-  else cell.innerHTML = cell.innerHTML+'\n\n'+hint;  
+  else cell.innerHTML = cell.innerHTML+'\n\n'+hint;
+  if(saveToHistory) gs.hintHistory[team][wordPos].push(hint);
 }
 
 function updateHintTable(team) {
@@ -604,7 +625,7 @@ function updateHintTable(team) {
       var cell = hintTable.rows[1].cells[i+offset];
       cell.innerHTML = '';
       for (var j = 0; j < gs.hintHistory[team][i].length; j++) {
-        addHintToTable(gs.hintHistory[team][i][j], team, i);
+        addHintToTable(gs.hintHistory[team][i][j], team, i, false);
       }
     }  
   }  
@@ -615,7 +636,7 @@ function updateHintTable(team) {
 //Ending the game
 function endGame(winningTeam) {
   gs.roundState = RS.NO_GAME;
-  if(winningTeam) addMessageToListDOM(s['game_end_'+winningTeam],null, winningTeam==='R' ? RED_TEAM_COLOR : BLUE_TEAM_COLOR, true);
+  if(winningTeam) addMessageToListDOM(s['game_end_'+winningTeam],null, true, winningTeam==='R' ? RED_TEAM_COLOR : BLUE_TEAM_COLOR);
   else {
     var pointDifference = (gs.tokens.R.good - gs.tokens.R.bad) - (gs.tokens.B.good - gs.tokens.B.bad);
     if(pointDifference === 0) addMessageToListDOM(s.game_end_tie); //TODO further tiebreaker  
@@ -655,7 +676,7 @@ function sendFormMessage() {
   if(DOM.inputs[0].value.toLowerCase() === 'almu' && DOM.inputs[1].value === ''){
     if(lang === 'en') changeLang();
     addMessageToListDOM("Tajny tryb Almu aktywowany.");
-    wordPool = [wordBank.pl_almu,wordBank.pl_basic, wordBank.pl_fantasy, wordBank.pl_fizyka, wordBank.pl_typy_pokemonów].flat();
+    wordPool = [wordBank.pl_almu, wordBank.pl_basic, wordBank.pl_fantasy, wordBank.pl_fizyka, wordBank.pl_typy_pokemonów].flat();
     DOM.inputs[0].value='';
     return;
   }
@@ -663,9 +684,12 @@ function sendFormMessage() {
   if(!isHintGiver && (code.length === 0 || forceGuessMode)){ //Sending a guess
     if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
       || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round>1)){
-        sendMessage('guess', DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y))+1 : x));
+      let guess = DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y))+1 : x);
+      if(guess.filter(x=> x>=1 && x<=NUMER_OF_WORDS && x===Math.round(x)).length === NUMER_OF_WORDS-1) sendMessage('guess', guess);
+      else alert(s.number_must_be_between+" 1 "+s.between_and+" "+NUMER_OF_WORDS);
     }else{
       alert(s.not_your_turn);
+      return;
     }    
   }else if(!isHintGiver && gs.roundState === RS.START && gs.currentTeam === team) { //Sending a hint
     sendMessage('hint', DOM.inputs.map(i=>i.value));
@@ -674,7 +698,8 @@ function sendFormMessage() {
     modeSwapButton.value = s.hint_mode;
     isHintGiver = true;
   }else{
-    alert(s.not_your_turn); 
+    alert(s.not_your_turn);
+    return;
   }
 
   DOM.inputs.forEach(i=>i.value='');  
@@ -782,16 +807,19 @@ drone.on('open', error => {
 	 
 	// User left the room
 	room.on('member_leave', ({id}) => {
-    if(!getMember(id)) return; //If they don't exist, it was probably the debugger
-    if(id === gs.hintGiver.id){
-      addMessageToListDOM(s.left_game_with_code, getMember(id)); 
+    var member = getMember(id);
+    if(!member) return; //If they don't exist, it was probably the debugger
+
+    if(id === gs.hintGiver.id && !gs.useEmergencyCode){
+      addMessageToListDOM(s.left_game_with_code, member); 
       gs.roundState = RS.START;
       addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
       updateWordsDisplay();
     } else{
-      addMessageToListDOM(s.left_game, getMember(id));   
+      addMessageToListDOM(s.left_game, member);   
     }    
-    const index = members.findIndex(member => member.id === id);
+
+    const index = members.findIndex(m => m.id === id);
     members.splice(index, 1);
     updateMembersDOM(); 
 	});
@@ -829,6 +857,12 @@ drone.on('open', error => {
             code = [];
             updateDescriptions(true);            
             DOM.modeSwapButton.style.display = 'none';            
+          } else if(gs.useEmergencyCode){ //TODO code duplication with 'codeReveal'
+            addMessageToListDOM(s.code_was+': '+gs.emergencyCode);
+            gs.hintGiver = {};
+            processGuesses(gs.emergencyCode);
+            gs.useEmergencyCode = false;
+            nextState();            
           }
           break;
         case 'codeDrawn': //Sent when a player drawn a code
@@ -845,6 +879,7 @@ drone.on('open', error => {
           addMessageToListDOM(s.reveals_code+': '+data.content.code, member); 
           gs.hintGiver = {};
           processGuesses(data.content.code);
+          gs.useEmergencyCode = false;
           nextState();
           break;
         case 'newGame': //Sent when a new game is started
@@ -904,6 +939,7 @@ drone.on('open', error => {
           break;
         case 'emergencyCode':
           gs.emergencyCode = data.content;
+          gs.useEmergencyCode = true;
           break;
         case 'wordReveal':
           addMessageToListDOM(s.reveals_words+': '+data.content.toString().replaceAll(',', ', '), member);

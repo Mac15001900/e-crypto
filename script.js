@@ -669,6 +669,28 @@ function revealSecretWords(){
   sendMessage('wordReveal', words);
 }
 
+function saveGame(enemyWords){
+  if(!team) return;
+  let gameSave = {
+    redTeam:  members.filter(m=>m.team === 'R').map(m=>m.clientData.name),
+    blueTeam: members.filter(m=>m.team === 'B').map(m=>m.clientData.name),    
+    language: gs.hintLanguage,
+    tokens: gs.tokens,
+    redWords:  team==='R' ? words : enemyWords,
+    blueWords: team==='B' ? words : enemyWords,
+    rounds: gs.round,
+    hints: gs.hintHistory,
+    timeHuman: Date().toString(),
+    timeMilis: Date.now(),
+    myTeam: team,
+    finished: true, //Will later allow saving mid-game
+    formatVersion: 1,
+  };
+  let gameHistory = localStorage.savedGames ? JSON.parse(localStorage.savedGames) : [];
+  gameHistory.push(gameSave);
+  localStorage.savedGames = JSON.stringify(gameHistory);
+}
+
 //Sending messages
 DOM.form.addEventListener('submit', sendFormMessage);
 
@@ -685,7 +707,7 @@ function sendFormMessage() {
     if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
       || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round>1)){
       let guess = DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y))+1 : x);
-      if(guess.filter(x=> x>=1 && x<=NUMER_OF_WORDS && x===Math.round(x)).length === NUMER_OF_WORDS-1) sendMessage('guess', guess);
+      if(guess.filter(x=> x*1>=1 && x*1<=NUMER_OF_WORDS && x*1===Math.round(x*1)).length === NUMER_OF_WORDS-1) sendMessage('guess', guess);
       else alert(s.number_must_be_between+" 1 "+s.between_and+" "+NUMER_OF_WORDS);
     }else{
       alert(s.not_your_turn);
@@ -944,6 +966,7 @@ drone.on('open', error => {
         case 'wordReveal':
           addMessageToListDOM(s.reveals_words+': '+data.content.toString().replaceAll(',', ', '), member);
           if(member.team == team) DOM.revealButton.style.display = 'none';
+          else saveGame(data.content);
           break;
         default: alert('Unkown message type received: '+data.type)
 

@@ -33,8 +33,8 @@ let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','curr
   'tokens':{},'hintHistory':{},'guesses':{'R':[],'B':[]}};
 
 //Game settings
-const DEBUG_MODE = true; //Whether debug info is printed
-const RANDOM_NAMES = true; //Whether usernames are randomly generated
+const DEBUG_MODE = false; //Whether debug info is printed
+const RANDOM_NAMES = false; //Whether usernames are randomly generated
 
 const SWAP_TEAMS = false; //Whether the starting team changes each round
 const NUMER_OF_WORDS = 4; //Number of words per team (other values not yet supported)
@@ -209,7 +209,7 @@ function compareMembers(m1,m2) {
     if(m2.team) return 1;
     else return 0;
   } else{
-    return m1.team.localeCompare(m2.team);
+    return -m1.team.localeCompare(m2.team);
   }
 }
  
@@ -685,6 +685,7 @@ function saveGame(enemyWords){
     myTeam: team,
     finished: true, //Will later allow saving mid-game
     formatVersion: 1,
+    debugEnabled: DEBUG_MODE,
   };
   let gameHistory = localStorage.savedGames ? JSON.parse(localStorage.savedGames) : [];
   gameHistory.push(gameSave);

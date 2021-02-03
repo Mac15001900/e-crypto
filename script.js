@@ -1,3 +1,5 @@
+const CHANNEL_ID = '5WQg2mc3UkqAxomd'; //Please replace this if you are forking this repository.
+
 const RS = {
   NO_GAME: 0, //There is no game going on
   START: 1,  //Start of a subround, nothing happened yet
@@ -54,7 +56,6 @@ const BLUE_BACKGROUND = '#00bfff5c';//'#469ae4';//"#00bfff5c"; #56affd
 
 //Network settings
 const ROOM_BASE = 'observable-main-'
-const CHANNEL_ID = '5WQg2mc3UkqAxomd';
 let roomName = null; //Need the interface to load before it can be selected
 
 const DOM = {

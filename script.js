@@ -88,10 +88,10 @@ function getRandomName() {
 function getUsername() {
   var name;
   if(RANDOM_NAMES) name = getRandomName();
-  else name = prompt(s.enter_username,"");
+  else name = prompt(s.enter_username,"").trim();
   
   while(!name){
-    var name = prompt(s.enter_username_non_empty,"");
+    var name = prompt(s.enter_username_non_empty,"").trim();
   }
   myName = name;
   return(name);
@@ -107,8 +107,8 @@ function getRoom(){
   if(roomFromURL) return roomFromURL;
 
   //If that fails, ask the user for it
-  var chosenName = prompt(s.enter_room_name);
-  while(!chosenName) chosenName = prompt(s.enter_room_name);
+  var chosenName = prompt(s.enter_room_name).trim();
+  while(!chosenName) chosenName = prompt(s.enter_room_name).trim();
   var shareableLink = encodeURI(window.location.origin + window.location.pathname + "?room=" + chosenName);
   addMessageToListDOM(s.shareable_link+" "+shareableLink);
   return chosenName;
@@ -206,12 +206,15 @@ function updateMembersDOM() {
 }
 
 function compareMembers(m1,m2) {
-  if(!m1.team){
-    if(m2.team) return 1;
-    else return 0;
-  } else{
-    return -m1.team.localeCompare(m2.team);
-  }
+  let nameCompare = m1.clientData.name.localeCompare(m2.clientData.name);
+  if(m1.team && m2.team){
+    let teamCompare = -m1.team.localeCompare(m2.team);
+    if(teamCompare) return teamCompare;
+    else            return nameCompare;
+
+  }else if (m1.team) return -1;
+  else if  (m2.team) return 1;
+  else               return nameCompare;
 }
  
 function addElementToListDOM(element) {
@@ -392,7 +395,7 @@ function updateTeamStyle(team) {
 DOM.rerollButton.addEventListener("click",askAboutReroll);
 
 function askAboutReroll() {
-  let ans = prompt(s.ask_for_reroll);
+  let ans = prompt(s.ask_for_reroll).trim();
   if(ans && rerollsLeft>0){
     let number = Math.floor(Number(ans));
     if(isNaN(number)) alert(s.enter_a_number);
@@ -871,23 +874,28 @@ drone.on('open', error => {
           nextState();
           break;
         case 'guess': //Sent when a player makes a guess
-          addMessageToListDOM(s.sends_guess+': '+data.content, member); //TODO make sure it's valid
-          gs.guesses[member.team] = data.content;
-          nextState();
-          if(isHintGiver && gs.roundState == RS.ALLY_GUESSED){
-            isHintGiver = false;
-            sendMessage('codeReveal', {'code':code});
-            codeButton.text = s.draw_code; //TODO remove this phase of the button
-            code = [];
-            updateDescriptions(true);            
-            DOM.modeSwapButton.style.display = 'none';            
-          } else if(gs.useEmergencyCode){ //TODO code duplication with 'codeReveal'
-            addMessageToListDOM(s.code_was+': '+gs.emergencyCode);
-            gs.hintGiver = {};
-            processGuesses(gs.emergencyCode);
-            gs.useEmergencyCode = false;
-            nextState();            
+          if((gs.currentTeam === member.team && gs.roundState === 3) || (gs.currentTeam === otherTeam(member.team) && gs.roundState === 2)) {
+            addMessageToListDOM(s.sends_guess+': '+data.content, member); 
+            gs.guesses[member.team] = data.content;
+            nextState();
+            if(isHintGiver && gs.roundState == RS.ALLY_GUESSED){
+              isHintGiver = false;
+              sendMessage('codeReveal', {'code':code});
+              //codeButton.text = s.draw_code; //TODO this line should be fine to remove (test though)
+              code = [];
+              updateDescriptions(true);            
+              DOM.modeSwapButton.style.display = 'none';            
+            } else if(gs.useEmergencyCode){ //TODO code duplication with 'codeReveal'
+              addMessageToListDOM(s.code_was+': '+gs.emergencyCode);
+              gs.hintGiver = {};
+              processGuesses(gs.emergencyCode);
+              gs.useEmergencyCode = false;
+              nextState();            
+            }
+          } else {
+            console.warn('Received invalid guess attempt from '+member.clientData.name+". This is very rare, but may happen if two players send a guess near simultaneously.");
           }
+          
           break;
         case 'codeDrawn': //Sent when a player drawn a code
           member.codeDrawn = true;

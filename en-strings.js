@@ -63,7 +63,7 @@ var enStrings = {
 	"time_for_hint_R" : "It's now red team's turn to give a hint",
 	"time_for_hint_B" : "It's now blue team's turn to give a hint",
 	"gains_intercept_R" : "The red team gains an intercept token",
-	"gains_intercept_B" : "The blue team gains a intercept token",
+	"gains_intercept_B" : "The blue team gains an intercept token",
 	"gains_failure_R" : "The red team gains a miscommunication token",
 	"gains_failure_B" : "The blue team gains a miscommunication token",
 	"starts_R" : "The red team starts!",

@@ -707,6 +707,13 @@ function sendFormMessage() {
     DOM.inputs[0].value='';
     return;
   }
+  if(DOM.inputs[0].value.toLowerCase() === 'css' && DOM.inputs[1].value === ''){
+    if(lang === 'pl') changeLang();
+    addMessageToListDOM("Secret CSS mode activated.");
+    wordPool = [wordBank.en_basic, wordBank.en_pokemon_types, wordBank.en_fantasy, wordBank.en_tech].flat();
+    DOM.inputs[0].value='';
+    return;
+  }
 
   if(!isHintGiver && (code.length === 0 || forceGuessMode)){ //Sending a guess
     if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
@@ -975,7 +982,7 @@ drone.on('open', error => {
           break;
         case 'wordReveal':
           addMessageToListDOM(s.reveals_words+': '+data.content.toString().replaceAll(',', ', '), member);
-          if(member.team == team) DOM.revealButton.style.display = 'none';
+          if(member.team === team) DOM.revealButton.style.display = 'none';
           else saveGame(data.content);
           break;
         default: alert('Unkown message type received: '+data.type)

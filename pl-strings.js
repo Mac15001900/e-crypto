@@ -1,6 +1,6 @@
 var plStrings = {
-	"default_words" : ["pl_basic","pl_typy_pokemonów","pl_fantasy"],
-	"reroll_words" : ["pl_basic"],
+	"default_words": ["pl_basic", "pl_custom", "pl_typy_pokemonów", "pl_fantasy"],
+	"reroll_words": ["pl_basic"],
 
 	"player_count": "gracze w grze:",
 	"you": "ty",
@@ -50,8 +50,8 @@ var plStrings = {
 	"hint_rules": "Nie możesz wspominać ani w żaden sposób sugerować jaki jest twój kod, dopóki nie zostanie ujawniony. \nMusisz stworzyć podpowiedź dla każdego z poniższych słów, przestrzegając tych dwóch zasad: \n1. Twoja podpowiedź nie może zawierać żadnego z twoich tajnych słów. \n2. Twoja podpowiedź musi odnosić się do znaczenia odpowiadającego jej tajnego słowa; podpowiedzi odnoszące się do poszczególnych liter, cyfr wyrazów, rymów itp.\nW przeciwieństwie do Tajniaków, podpowiedzi *mogą* zawierać wiele słów, liczby, znaki specjalnych, emoji itp.",
 	"intercept_icon": "🔑",
 	"failure_icon": "☠️",
-	"code_icon" : "🧾",
-	"swap_icon" : "🔀",
+	"code_icon": "🧾",
+	"swap_icon": "🔀",
 	"not_your_turn": "Jeszcze nie twoja kolej.",
 	"game_end_tie": "Ostatnia runda się skończyła! Łamanie remisów nie zostało jeszcze zaimplementowane, więc będziecie musieli zrobić to sami ;)",
 	"game_end_R": "Czerwona drużyna wygrała!",
@@ -85,9 +85,10 @@ var plStrings = {
 	"confirm_hint_override": "W grze jest już aktywna podpowiedź. Jeśli dasz kolejną teraz, to poprzednia zostanie nadpisana. Czy na pewno chcesz to zrobić?\n Użyj tej opjci tylko wtedy, gdy dający podpowiedź opóści grę.",
 	"no_team": "Nie należysz jeszcze do żadnej drużyny.",
 	"current_hint": "Aktualna wskazówka to",
-	"change_lang" : "Zmień język",
-	"reveal_words" : "Ujawnij tajne słowa",
-	"reveals_words" : "Ujawnia swoje tajne słowa",
-	"code_was" : "Tajnym kodem było",
+	"change_lang": "Zmień język",
+	"reveal_words": "Ujawnij tajne słowa",
+	"reveals_words": "Ujawnia swoje tajne słowa",
+	"code_was": "Tajnym kodem było",
+	"dark_mode": "Tryb ciemny",
 
 }

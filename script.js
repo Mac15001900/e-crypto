@@ -22,7 +22,7 @@ let forceGuessMode = false; //UI variable
 
 //Team variables
 let words = [];
-let rerollsLeft= 0;
+let rerollsLeft = 0;
 
 //Other
 let rulesShown = false;
@@ -31,8 +31,10 @@ let lang = 'en';
 let s = enStrings;
 
 //gameState block:
-let gs = {'received': false, 'memberData':[], 'round':0, 'startingTeam':'','currentTeam':'','roundState':RS.NO_GAME,'hintGiver':{},
-  'tokens':{},'hintHistory':{},'guesses':{'R':[],'B':[]}};
+let gs = {
+  'received': false, 'memberData': [], 'round': 0, 'startingTeam': '', 'currentTeam': '', 'roundState': RS.NO_GAME, 'hintGiver': {},
+  'tokens': {}, 'hintHistory': {}, 'guesses': { 'R': [], 'B': [] }
+};
 
 //Game settings
 const DEBUG_MODE = false; //Whether debug info is printed
@@ -87,30 +89,30 @@ function getRandomName() {
 
 function getUsername() {
   var name;
-  if(RANDOM_NAMES) name = getRandomName();
-  else name = prompt(s.enter_username,"").trim();
-  
-  while(!name){
-    var name = prompt(s.enter_username_non_empty,"").trim();
+  if (RANDOM_NAMES) name = getRandomName();
+  else name = prompt(s.enter_username, "").trim();
+
+  while (!name) {
+    var name = prompt(s.enter_username_non_empty, "").trim();
   }
   myName = name;
-  return(name);
+  return (name);
 }
 
-function getRoom(){
-  if(roomName) return roomName;
+function getRoom() {
+  if (roomName) return roomName;
 
-  if(DEBUG_MODE) return "dev";
+  if (DEBUG_MODE) return "dev";
 
   //Try to get it from the URL
   var roomFromURL = (new URLSearchParams(window.location.search)).get('room');
-  if(roomFromURL) return roomFromURL;
+  if (roomFromURL) return roomFromURL;
 
   //If that fails, ask the user for it
   var chosenName = prompt(s.enter_room_name).trim();
-  while(!chosenName) chosenName = prompt(s.enter_room_name).trim();
+  while (!chosenName) chosenName = prompt(s.enter_room_name).trim();
   var shareableLink = encodeURI(window.location.origin + window.location.pathname + "?room=" + chosenName);
-  addMessageToListDOM(s.shareable_link+" "+shareableLink);
+  addMessageToListDOM(s.shareable_link + " " + shareableLink);
   return chosenName;
 }
 
@@ -119,7 +121,7 @@ function getRoom(){
 //Initialises the game, called before 
 function init() {
   resetGameState();
-  if(navigator.language === 'pl') changeLang(); //TODO support more languages
+  if (navigator.language === 'pl' || (new URLSearchParams(window.location.search)).get('lang') === 'pl') changeLang(); //TODO support more languages
   updateDescriptions(true);
   translate();
   roomName = ROOM_BASE + getRoom();
@@ -127,24 +129,24 @@ function init() {
 
 function getMember(input) {
   let id = input;
-  if(typeof input === 'object') id = input.id;
-  let res = members.find(m=>m.id === id);
-  if(!res) console.error('Member with id '+ id +' not found.');
+  if (typeof input === 'object') id = input.id;
+  let res = members.find(m => m.id === id);
+  if (!res) console.error('Member with id ' + id + ' not found.');
   return res;
 }
 
 function otherTeam(team) {
-  if(team === 'R') return 'B';
-  else if(team === 'B') return 'R';
-  else console.error('Invalid team '+ team);
+  if (team === 'R') return 'B';
+  else if (team === 'B') return 'R';
+  else console.error('Invalid team ' + team);
 }
 
 function repeat(n, ...fs) {
   for (var i = 0; i < fs.length; i++) {
     for (var j = 0; j < n; j++) {
       fs[i]();
-    }  
-  }  
+    }
+  }
 }
 
 
@@ -155,21 +157,21 @@ function updateAllUI() {
   updateRerollButton();
   updateHintTable();
   updateDescriptions();
-  if(team){
+  if (team) {
     updateWordsDisplay();
     updateTeamStyle(team);
   }
-  if(gs.gameState != RS.NO_GAME) DOM.revealButton.style.display = 'none';
+  if (gs.gameState != RS.NO_GAME) DOM.revealButton.style.display = 'none';
 }
 
 function createMemberElement(member) {
   const name = member.clientData.name;
   const el = document.createElement('div');
   var content = name;
-  if(member.id === drone.clientId) content += " (" + s.you+ ")";
-  if(member.team) content += createVisualTokens(member.team);
-  if(member.codeDrawn) content += s.code_icon;
-  if(member.switchingTeams) content += s.swap_icon;
+  if (member.id === drone.clientId) content += " (" + s.you + ")";
+  if (member.team) content += createVisualTokens(member.team);
+  if (member.codeDrawn) content += s.code_icon;
+  if (member.switchingTeams) content += s.swap_icon;
   el.appendChild(document.createTextNode(content));
   el.className = 'member';
   el.style.color = getTeamColor(member.team);
@@ -179,25 +181,25 @@ function createMemberElement(member) {
 function createVisualTokens(team) {
   var res = '';
   var tokens = gs.tokens[team];
-  if(!tokens) return '';
+  if (!tokens) return '';
   for (var i = 0; i < tokens.good; i++) {
     res += s.intercept_icon
   }
-  if(res) res+=' ';
+  if (res) res += ' ';
   for (var i = 0; i < tokens.bad; i++) {
     res += s.failure_icon
   }
-  if(res) res = ' '+res;
+  if (res) res = ' ' + res;
   return res;
 }
 
 function getTeamColor(team) {
-  if(!team) return NO_TEAM_COLOR;
-  else if(team === 'R') return RED_TEAM_COLOR;
-  else if(team === 'B') return BLUE_TEAM_COLOR;
-  else console.error('Invalid team: '+team);
+  if (!team) return NO_TEAM_COLOR;
+  else if (team === 'R') return RED_TEAM_COLOR;
+  else if (team === 'B') return BLUE_TEAM_COLOR;
+  else console.error('Invalid team: ' + team);
 }
- 
+
 function updateMembersDOM() {
   //DOM.secretWordsDisplay.innerText = members.length+' '+s.player_count;
   DOM.membersList.innerHTML = '';
@@ -205,29 +207,29 @@ function updateMembersDOM() {
     DOM.membersList.appendChild(createMemberElement(member)));
 }
 
-function compareMembers(m1,m2) {
+function compareMembers(m1, m2) {
   let nameCompare = m1.clientData.name.localeCompare(m2.clientData.name);
-  if(m1.team && m2.team){
+  if (m1.team && m2.team) {
     let teamCompare = -m1.team.localeCompare(m2.team);
-    if(teamCompare) return teamCompare;
-    else            return nameCompare;
+    if (teamCompare) return teamCompare;
+    else return nameCompare;
 
-  }else if (m1.team) return -1;
-  else if  (m2.team) return 1;
-  else               return nameCompare;
+  } else if (m1.team) return -1;
+  else if (m2.team) return 1;
+  else return nameCompare;
 }
- 
+
 function addElementToListDOM(element) {
   const el = DOM.messages;
   const wasTop = el.scrollTop === el.scrollHeight - el.clientHeight;
   el.appendChild(element);
   if (wasTop) {
-   el.scrollTop = el.scrollHeight - el.clientHeight;
+    el.scrollTop = el.scrollHeight - el.clientHeight;
   }
 }
- 
-function addMessageToListDOM(text, member, important=false, color='black') {
-  if(text.includes('\n')){
+
+function addMessageToListDOM(text, member, important = false, color = 'black') {
+  if (text.includes('\n')) {
     let messages = text.split('\n');
     for (var i = 0; i < messages.length; i++) {
       addMessageToListDOM(messages[i], member);
@@ -236,11 +238,11 @@ function addMessageToListDOM(text, member, important=false, color='black') {
   }
   const el = document.createElement('div');
   el.style.color = color;
-  if(important) el.style['font-weight'] = 'bold';
-  if(member) el.appendChild(createMemberElement(member));
+  if (important) el.style['font-weight'] = 'bold';
+  if (member) el.appendChild(createMemberElement(member));
   el.appendChild(document.createTextNode(text));
   el.className = 'message';
-  
+
   addElementToListDOM(el);
 }
 
@@ -262,64 +264,64 @@ function enableCodeDrawing(enabled) {
 function stringifyHint(hint) {
   let res = '';
   for (var i = 0; i < hint.length; i++) {
-    res+= alphabet.substring(i,i+1) + ': ' + hint[i];
-    if(i<hint.length-1) res+= ' | ';
+    res += alphabet.substring(i, i + 1) + ': ' + hint[i];
+    if (i < hint.length - 1) res += ' | ';
   }
   return res;
 }
 
 //Getting codes
 codeButton.addEventListener("click", function () {
-  if(code.length === 0){
+  if (code.length === 0) {
     sendMessage('codeDrawn');
     randomiseCode();
     addMessageToListDOM(s.your_code_is + ' ' + code);
     updateDescriptions(false);
-    if(!rulesShown){
+    if (!rulesShown) {
       addMessageToListDOM(s.hint_rules);
       rulesShown = true;
     }
-  } else{
-    alert(s.already_have_code+':\n'+code);
+  } else {
+    alert(s.already_have_code + ':\n' + code);
   }
-  
+
 })
 
 function randomiseCode() {
   let codeElements = [];
-  let elementsLeft = [1,2,3,4];
-  while(codeElements.length < NUMER_OF_WORDS - 1){
+  let elementsLeft = [1, 2, 3, 4];
+  while (codeElements.length < NUMER_OF_WORDS - 1) {
     let index = Math.floor(Math.random() * elementsLeft.length);
     codeElements.push(elementsLeft[index]);
-    elementsLeft.splice(index,1);
+    elementsLeft.splice(index, 1);
   }
   code = codeElements;
   DOM.modeSwapButton.style.display = 'block';
-  return(codeElements);
+  return (codeElements);
 }
 
 function updateDescriptions(guessMode) {
-  if(forceGuessMode || code.length===0){ //TODO or isHintGiver
+  if (forceGuessMode || code.length === 0) { //TODO or isHintGiver
     for (var i = 0; i < DOM.descriptions.length; i++) {
-      DOM.descriptions[i].innerHTML = s.guess_for + ' ' + alphabet.substring(i,i+1);
+      DOM.descriptions[i].innerHTML = s.guess_for + ' ' + alphabet.substring(i, i + 1);
       DOM.inputs[i].placeholder = s.enter_guess_here;
     }
   } else {
-    let codeWords = code.map(x=>words[(x-1)]);
+    let codeWords = code.map(x => words[(x - 1)]);
     for (var i = 0; i < DOM.descriptions.length; i++) {
-      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i]-1] + '":';
+      DOM.descriptions[i].innerHTML = s.hint_for + ' "' + words[code[i] - 1] + '":';
       DOM.inputs[i].placeholder = s.enter_hint_here;
     }
   }
 }
 
 //Switching between hint and guess mode
-DOM.modeSwapButton.addEventListener("click",swapMode);
+DOM.modeSwapButton.addEventListener("click", swapMode);
 
 function swapMode() {
   forceGuessMode = !forceGuessMode;
-  let inputValues = DOM.inputs.map(i=>i.value);
-  if(forceGuessMode){
+  let inputValues = DOM.inputs.map(i => i.value);
+  if (forceGuessMode) {
     updateDescriptions(true);
     modeSwapButton.value = s.hint_mode;
     savedInputs.guesses = inputValues;
@@ -332,7 +334,7 @@ function swapMode() {
   }
 }
 
-function setInputs(newValues){
+function setInputs(newValues) {
   for (var i = 0; i < newValues.length; i++) {
     DOM.inputs[i].value = newValues[i];
   }
@@ -348,11 +350,11 @@ blueButton.addEventListener("click", function () {
 })
 
 function switchToTeam(newTeam) {
-  if(!team) {
+  if (!team) {
     team = newTeam;
     nextTeam = newTeam;
-    sendMessage('teamSwitch',newTeam);
-    sendMessage('requestWords',newTeam);
+    sendMessage('teamSwitch', newTeam);
+    sendMessage('requestWords', newTeam);
     DOM.redButton.innerHTML = s.switch_to_R;
     DOM.blueButton.innerHTML = s.switch_to_B;
     updateTeamStyle(team);
@@ -366,61 +368,63 @@ function switchToTeam(newTeam) {
   codeButton.style.display = 'block';
   resetButton.style.display = 'block';
   let newButton;
-  if(newTeam === 'R'){
-    redButton.style.display  = 'none';
+  if (newTeam === 'R') {
+    redButton.style.display = 'none';
     newButton = blueButton;
-  } else if(newTeam === 'B'){
-    blueButton.style.display  = 'none';
+  } else if (newTeam === 'B') {
+    blueButton.style.display = 'none';
     newButton = redButton;
-  }else{
-    alert('Invalid team '+newTeam);
+  } else {
+    alert('Invalid team ' + newTeam);
     return;
   }
   newButton.style.display = 'block';
 }
 
 function updateTeamStyle(team) {
-  if(team === 'R') {
+  if (team === 'R') {
     secretWordsDisplay.style.backgroundColor = RED_BACKGROUND;
   }
-  else if(team=='B') {
+  else if (team == 'B') {
     secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
     //document.body.style.backgroundColor = BLUE_BACKGROUND;
   }
-  else alert('Invalid team '+team);
+  else alert('Invalid team ' + team);
 }
 
 //Rerolling words
 
-DOM.rerollButton.addEventListener("click",askAboutReroll);
+DOM.rerollButton.addEventListener("click", askAboutReroll);
 
 function askAboutReroll() {
   let ans = prompt(s.ask_for_reroll).trim();
-  if(ans && rerollsLeft>0){
+  if (ans && rerollsLeft > 0) {
     let number = Math.floor(Number(ans));
-    if(isNaN(number)) alert(s.enter_a_number);
-    else if(number>NUMER_OF_WORDS || number<1){
-      alert(s.number_must_be_between+' '+1+' '+s.between_and+' '+NUMER_OF_WORDS);
-    } else{
+    if (isNaN(number)) alert(s.enter_a_number);
+    else if (number > NUMER_OF_WORDS || number < 1) {
+      alert(s.number_must_be_between + ' ' + 1 + ' ' + s.between_and + ' ' + NUMER_OF_WORDS);
+    } else {
       reroll(number);
     }
-  }else if(rerollsLeft<=0){
+  } else if (rerollsLeft <= 0) {
     alert(s.reroll_used_by_teammate);
   }
 }
 
 function reroll(word) {
   let pool = convertToWordPool(gs.hintLanguage === "en" ? enStrings.reroll_words : plStrings.reroll_words); //TODO language
-  let newWord = pool[Math.floor(Math.random()*pool.length)].toUpperCase();
-  while(words.includes(newWord)) newWord = pool[Math.floor(Math.random()*pool.length)].toUpperCase();
-  sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
+  let newWord = pool[Math.floor(Math.random() * pool.length)].toUpperCase();
+  while (words.includes(newWord)) newWord = pool[Math.floor(Math.random() * pool.length)].toUpperCase();
+  sendMessage('rerollUsed', { 'wordNumber': word, 'newWord': newWord, 'team': team });
 }
 
 //Trolling people
-Object.defineProperty(window, 'wordsEnemy', { get: function() { 
-  window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-  return "Trololololo";
-} });
+Object.defineProperty(window, 'wordsEnemy', {
+  get: function () {
+    window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    return "Trololololo";
+  }
+});
 
 
 //Starting a new game
@@ -429,19 +433,19 @@ resetButton.addEventListener("click", newGame);
 
 function newGame() {
   if (confirm(s.confirm_reset)) {
-    var newWordsRed = pickNoDuplicates(wordPool,NUMER_OF_WORDS*2).map(s=>s.toUpperCase());
-    var newWordsBlue = newWordsRed.splice(0,NUMER_OF_WORDS);
-    var newStartingTeam = Math.random()<0.5 ? 'R' : 'B';
-    sendMessage('newGame', {wordsRed:newWordsRed, wordsBlue:newWordsBlue, startingTeam:newStartingTeam, language:lang});
+    var newWordsRed = pickNoDuplicates(wordPool, NUMER_OF_WORDS * 2).map(s => s.toUpperCase());
+    var newWordsBlue = newWordsRed.splice(0, NUMER_OF_WORDS);
+    var newStartingTeam = Math.random() < 0.5 ? 'R' : 'B';
+    sendMessage('newGame', { wordsRed: newWordsRed, wordsBlue: newWordsBlue, startingTeam: newStartingTeam, language: lang });
   }
 }
 
 function receiveNewGame(data) {
-  if(nextTeam !== team){
+  if (nextTeam !== team) {
     team = nextTeam;
     sendMessage('teamSwitch', team);
   }
-  if(code.length>0) {
+  if (code.length > 0) {
     code = [];
     DOM.modeSwapButton.style.display = 'none';
     codeButton.text = s.draw_code;
@@ -451,23 +455,23 @@ function receiveNewGame(data) {
 
   words = [];
   DOM.revealButton.style.display = 'none';
-  if(team === 'R') {
+  if (team === 'R') {
     words = data.wordsRed;
     secretWordsDisplay.style.backgroundColor = RED_BACKGROUND;
   }
-  if(team === 'B')  {
-     words = data.wordsBlue;
-     secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
-  }  
-
-  if(team){
-    rerollsLeft = REROLLS_PER_GAME;
-    updateRerollButton();  
+  if (team === 'B') {
+    words = data.wordsBlue;
+    secretWordsDisplay.style.backgroundColor = BLUE_BACKGROUND;
   }
 
-  members.forEach(m=>m.codeDrawn = false);
+  if (team) {
+    rerollsLeft = REROLLS_PER_GAME;
+    updateRerollButton();
+  }
 
-  addMessageToListDOM(s['starts_'+data.startingTeam]);
+  members.forEach(m => m.codeDrawn = false);
+
+  addMessageToListDOM(s['starts_' + data.startingTeam]);
   resetGameState(data.startingTeam);
   gs.received = true;
   gs.roundState = RS.START;
@@ -479,160 +483,160 @@ function receiveNewGame(data) {
 }
 
 function resetGameState(startingTeam) {
-  if(!startingTeam) startingTeam = '';
+  if (!startingTeam) startingTeam = '';
   gs.round = 1;
   gs.startingTeam = startingTeam;
-  gs.currentTeam  = startingTeam;
+  gs.currentTeam = startingTeam;
   gs.roundState = RS.NO_GAME;
-  gs.tokens = {R:{good:0,bad:0}, B:{good:0,bad:0}};
-  gs.hintHistory = {last:[],R:[],B:[]};
-  repeat(NUMER_OF_WORDS, ()=>gs.hintHistory.R.push([]), ()=>gs.hintHistory.B.push([]));
+  gs.tokens = { R: { good: 0, bad: 0 }, B: { good: 0, bad: 0 } };
+  gs.hintHistory = { last: [], R: [], B: [] };
+  repeat(NUMER_OF_WORDS, () => gs.hintHistory.R.push([]), () => gs.hintHistory.B.push([]));
   gs.emergencyCode = undefined;
   gs.useEmergencyCode = false;
-  savedInputs = {hints:[], guesses:[]};
-  repeat(NUMER_OF_WORDS-1, ()=>savedInputs.hints.push(""), ()=>savedInputs.guesses.push(""));
+  savedInputs = { hints: [], guesses: [] };
+  repeat(NUMER_OF_WORDS - 1, () => savedInputs.hints.push(""), () => savedInputs.guesses.push(""));
 }
 
 function updateWordsDisplay() {
   let wordsDisplay = '';
-  if(team){
-    wordsDisplay += s.secret_words + ': ';  
+  if (team) {
+    wordsDisplay += s.secret_words + ': ';
     for (var i = 0; i < words.length; i++) {
-      wordsDisplay += (i+1).toString() + ':' + words[i];
-      if(i !== words.length-1) wordsDisplay += '  |  ';
-    }  
-  } else  {
+      wordsDisplay += (i + 1).toString() + ':' + words[i];
+      if (i !== words.length - 1) wordsDisplay += '  |  ';
+    }
+  } else {
     addMessageToListDOM(s.no_team);
   }
-  
-  //Add game status:
-  wordsDisplay += '\n\n'+ s.status+': ';
-  if([0,4,5].includes(gs.roundState)) wordsDisplay+= s['status_'+gs.roundState];
-  else wordsDisplay+= s['status_'+gs.roundState+'_'+gs.currentTeam];
 
-  wordsDisplay += '\n'+s.round+': '+gs.round+'/'+NUMBER_OF_ROUNDS;
+  //Add game status:
+  wordsDisplay += '\n\n' + s.status + ': ';
+  if ([0, 4, 5].includes(gs.roundState)) wordsDisplay += s['status_' + gs.roundState];
+  else wordsDisplay += s['status_' + gs.roundState + '_' + gs.currentTeam];
+
+  wordsDisplay += '\n' + s.round + ': ' + gs.round + '/' + NUMBER_OF_ROUNDS;
 
   DOM.secretWordsDisplay.innerText = wordsDisplay;
 }
 
-function updateRerollButton(){
-  if(rerollsLeft > 0){
+function updateRerollButton() {
+  if (rerollsLeft > 0) {
     DOM.rerollButton.style.display = 'block';
-    DOM.rerollButton.text = s.reroll+' ('+rerollsLeft+')';
-  } else{
+    DOM.rerollButton.text = s.reroll + ' (' + rerollsLeft + ')';
+  } else {
     DOM.rerollButton.style.display = 'none';
   }
-  
+
 }
 
-function pickNoDuplicates(list,amount,discard) {
-  if(!discard) discard = [];
+function pickNoDuplicates(list, amount, discard) {
+  if (!discard) discard = [];
   res = [];
-  var filteredList = list.filter(x=> !discard.includes(x));
-  while(res.length < amount){
+  var filteredList = list.filter(x => !discard.includes(x));
+  while (res.length < amount) {
     var index = Math.floor(filteredList.length * Math.random());
-    var nextElem = filteredList.splice(index,1);    
+    var nextElem = filteredList.splice(index, 1);
     res.push(nextElem);
   }
-  return(res.flat());
+  return (res.flat());
 }
 
 //Round progression
 
 function nextState() {
-  if(DEBUG_MODE) addMessageToListDOM('Incrementing state: '+gs.roundState);
-  if(gs.roundState === RS.NO_GAME) return;
+  if (DEBUG_MODE) addMessageToListDOM('Incrementing state: ' + gs.roundState);
+  if (gs.roundState === RS.NO_GAME) return;
   gs.roundState++;
 
-  if(gs.round === 1 && gs.roundState === RS.HINT_GIVEN) {
+  if (gs.round === 1 && gs.roundState === RS.HINT_GIVEN) {
     gs.roundState++;  //Enemy team doesn't guess in round 1
   }
 
-  if(gs.roundState === RS.HINT_GIVEN){
-    if(gs.currentTeam === team) addMessageToListDOM(s.enemy_time_to_guess_ally);
+  if (gs.roundState === RS.HINT_GIVEN) {
+    if (gs.currentTeam === team) addMessageToListDOM(s.enemy_time_to_guess_ally);
     else addMessageToListDOM(s.your_time_to_guess_enemy);
   }
 
-  if(gs.roundState === RS.ENEMY_GUESSED){
-    if(gs.currentTeam === team) addMessageToListDOM(s.your_time_to_guess_ally);
+  if (gs.roundState === RS.ENEMY_GUESSED) {
+    if (gs.currentTeam === team) addMessageToListDOM(s.your_time_to_guess_ally);
     else addMessageToListDOM(s.enemy_time_to_guess_enemy);
   }
 
-  if(gs.roundState === RS.ROUND_END){
+  if (gs.roundState === RS.ROUND_END) {
     gs.currentTeam = otherTeam(gs.currentTeam);
     gs.roundState = RS.START;
-    if(gs.startingTeam === gs.currentTeam){
-      if(checkForTokenVictory()) return;
+    if (gs.startingTeam === gs.currentTeam) {
+      if (checkForTokenVictory()) return;
       gs.round++;
-      addMessageToListDOM(s.round_start_1+' '+gs.round+' '+s.round_start_2, null, true);
-      if(SWAP_TEAMS) gs.startingTeam = otherTeam(gs.startingTeam);
+      addMessageToListDOM(s.round_start_1 + ' ' + gs.round + ' ' + s.round_start_2, null, true);
+      if (SWAP_TEAMS) gs.startingTeam = otherTeam(gs.startingTeam);
       gs.currentTeam = gs.startingTeam;
       forceGuessMode = false;
-      if(gs.round > NUMBER_OF_ROUNDS) endGame('');
+      if (gs.round > NUMBER_OF_ROUNDS) endGame('');
     }
-    addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
+    addMessageToListDOM(s['time_for_hint_' + gs.currentTeam]);
   }
 
   updateWordsDisplay();
-  if(DEBUG_MODE) addMessageToListDOM('New state: '+gs.roundState);
+  if (DEBUG_MODE) addMessageToListDOM('New state: ' + gs.roundState);
 }
 
 //Guess processing
 
 function processGuesses(code) {
   var currentTeam = gs.currentTeam;
-  var opponents = otherTeam(currentTeam); 
+  var opponents = otherTeam(currentTeam);
   var hints = gs.hintHistory.last;
 
   //Add hints to the table
   for (var i = 0; i < code.length; i++) {
-    addHintToTable(hints[i],currentTeam,code[i]-1, true);
+    addHintToTable(hints[i], currentTeam, code[i] - 1, true);
     //gs.hintHistory[currentTeam][code[i]-1].push(hints[i]);
   }
 
   //Assign tokens
-  if(gs.round > 1 && gs.guesses[opponents].toString() === code.toString()) {
+  if (gs.round > 1 && gs.guesses[opponents].toString() === code.toString()) {
     gs.tokens[opponents].good++;
-    addMessageToListDOM(s['gains_intercept_'+opponents]+' '+s.intercept_icon);
+    addMessageToListDOM(s['gains_intercept_' + opponents] + ' ' + s.intercept_icon);
   }
-  if(gs.guesses[currentTeam].toString() !== code.toString()) {
-    gs.tokens[currentTeam].bad++;  
-    addMessageToListDOM(s['gains_failure_'+currentTeam]+' '+s.failure_icon);
+  if (gs.guesses[currentTeam].toString() !== code.toString()) {
+    gs.tokens[currentTeam].bad++;
+    addMessageToListDOM(s['gains_failure_' + currentTeam] + ' ' + s.failure_icon);
     //Add failed guesses to the hint table
     var guesses = gs.guesses[currentTeam];
     for (var i = 0; i < guesses.length; i++) {
       var guess = parseInt(guesses[i]);
-      if(guess.toString() !== code[i].toString() && [1,2,3,4].includes(guess)) {
-        addHintToTable('('+hints[i]+')', currentTeam, guess-1, true);
+      if (guess.toString() !== code[i].toString() && [1, 2, 3, 4].includes(guess)) {
+        addHintToTable('(' + hints[i] + ')', currentTeam, guess - 1, true);
         //gs.hintHistory[currentTeam][code[i]-1].push('('+hints[i]+')');
         //gs.hintHistory[currentTeam][guess-1].push('('+hints[i]+')');
       }
     }
   }
-  updateMembersDOM();  
+  updateMembersDOM();
 }
 
-function addHintToTable(hint,team,wordPos, saveToHistory=false) {
-  var cell = hintTable.rows[1].cells[wordPos+(team==='R'? 0:4)]
-  if(!cell.innerHTML) cell.innerHTML = hint;
-  else cell.innerHTML = cell.innerHTML+'\n\n'+hint;
-  if(saveToHistory) gs.hintHistory[team][wordPos].push(hint);
+function addHintToTable(hint, team, wordPos, saveToHistory = false) {
+  var cell = hintTable.rows[1].cells[wordPos + (team === 'R' ? 0 : 4)]
+  if (!cell.innerHTML) cell.innerHTML = hint;
+  else cell.innerHTML = cell.innerHTML + '\n\n' + hint;
+  if (saveToHistory) gs.hintHistory[team][wordPos].push(hint);
 }
 
 function updateHintTable(team) {
-  if(!team){
+  if (!team) {
     updateHintTable('R');
     updateHintTable('B');
-  }else{
-    const offset = team==='R' ? 0 : 4;
+  } else {
+    const offset = team === 'R' ? 0 : 4;
     for (var i = 0; i < NUMER_OF_WORDS; i++) {
-      var cell = hintTable.rows[1].cells[i+offset];
+      var cell = hintTable.rows[1].cells[i + offset];
       cell.innerHTML = '';
       for (var j = 0; j < gs.hintHistory[team][i].length; j++) {
         addHintToTable(gs.hintHistory[team][i][j], team, i, false);
       }
-    }  
-  }  
+    }
+  }
 }
 
 
@@ -640,12 +644,12 @@ function updateHintTable(team) {
 //Ending the game
 function endGame(winningTeam) {
   gs.roundState = RS.NO_GAME;
-  if(winningTeam) addMessageToListDOM(s['game_end_'+winningTeam],null, true, winningTeam==='R' ? RED_TEAM_COLOR : BLUE_TEAM_COLOR);
+  if (winningTeam) addMessageToListDOM(s['game_end_' + winningTeam], null, true, winningTeam === 'R' ? RED_TEAM_COLOR : BLUE_TEAM_COLOR);
   else {
     var pointDifference = (gs.tokens.R.good - gs.tokens.R.bad) - (gs.tokens.B.good - gs.tokens.B.bad);
-    if(pointDifference === 0) addMessageToListDOM(s.game_end_tie); //TODO further tiebreaker  
-    else if(pointDifference > 0) endGame('R');
-    else if(pointDifference < 0) endGame('B');    
+    if (pointDifference === 0) addMessageToListDOM(s.game_end_tie); //TODO further tiebreaker  
+    else if (pointDifference > 0) endGame('R');
+    else if (pointDifference < 0) endGame('B');
   }
   updateWordsDisplay();
   DOM.revealButton.style.display = 'block';
@@ -654,34 +658,34 @@ function endGame(winningTeam) {
 function checkForTokenVictory() {
   var blueWin = false;
   var redWin = false;
-  if(gs.tokens.R.good >= TOKENS_NEEDED) redWin  = true;
-  if(gs.tokens.R.bad >= TOKENS_NEEDED)  blueWin = true;
-  if(gs.tokens.B.good >= TOKENS_NEEDED) blueWin = true;
-  if(gs.tokens.B.bad >= TOKENS_NEEDED)  redWin  = true;
+  if (gs.tokens.R.good >= TOKENS_NEEDED) redWin = true;
+  if (gs.tokens.R.bad >= TOKENS_NEEDED) blueWin = true;
+  if (gs.tokens.B.good >= TOKENS_NEEDED) blueWin = true;
+  if (gs.tokens.B.bad >= TOKENS_NEEDED) redWin = true;
 
-  if(redWin && blueWin) endGame('');
-  else if(redWin) endGame('R');
-  else if(blueWin) endGame('B');
+  if (redWin && blueWin) endGame('');
+  else if (redWin) endGame('R');
+  else if (blueWin) endGame('B');
 
   return redWin || blueWin;
 }
 
 DOM.revealButton.addEventListener('click', revealSecretWords);
 
-function revealSecretWords(){
+function revealSecretWords() {
   DOM.revealButton.style.display = 'none';
   sendMessage('wordReveal', words);
 }
 
-function saveGame(enemyWords){
-  if(!team) return;
+function saveGame(enemyWords) {
+  if (!team) return;
   let gameSave = {
-    redTeam:  members.filter(m=>m.team === 'R').map(m=>m.clientData.name),
-    blueTeam: members.filter(m=>m.team === 'B').map(m=>m.clientData.name),    
+    redTeam: members.filter(m => m.team === 'R').map(m => m.clientData.name),
+    blueTeam: members.filter(m => m.team === 'B').map(m => m.clientData.name),
     language: gs.hintLanguage,
     tokens: gs.tokens,
-    redWords:  team==='R' ? words : enemyWords,
-    blueWords: team==='B' ? words : enemyWords,
+    redWords: team === 'R' ? words : enemyWords,
+    blueWords: team === 'B' ? words : enemyWords,
     rounds: gs.round,
     hints: gs.hintHistory,
     timeHuman: Date().toString(),
@@ -700,43 +704,43 @@ function saveGame(enemyWords){
 DOM.form.addEventListener('submit', sendFormMessage);
 
 function sendFormMessage() {
-  if(DOM.inputs[0].value.toLowerCase() === 'almu' && DOM.inputs[1].value === ''){
-    if(lang === 'en') changeLang();
+  if (DOM.inputs[0].value.toLowerCase() === 'almu' && DOM.inputs[1].value === '') {
+    if (lang === 'en') changeLang();
     addMessageToListDOM("Tajny tryb Almu aktywowany.");
     wordPool = [wordBank.pl_almu, wordBank.pl_basic, wordBank.pl_fantasy, wordBank.pl_fizyka, wordBank.pl_typy_pokemonów].flat();
-    DOM.inputs[0].value='';
+    DOM.inputs[0].value = '';
     return;
   }
-  if(DOM.inputs[0].value.toLowerCase() === 'css' && DOM.inputs[1].value === ''){
-    if(lang === 'pl') changeLang();
+  if (DOM.inputs[0].value.toLowerCase() === 'css' && DOM.inputs[1].value === '') {
+    if (lang === 'pl') changeLang();
     addMessageToListDOM("Secret CSS mode activated.");
     wordPool = [wordBank.en_basic, wordBank.en_pokemon_types, wordBank.en_fantasy, wordBank.en_tech].flat();
-    DOM.inputs[0].value='';
+    DOM.inputs[0].value = '';
     return;
   }
 
-  if(!isHintGiver && (code.length === 0 || forceGuessMode)){ //Sending a guess
-    if((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
-      || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round>1)){
-      let guess = DOM.inputs.map(i=>i.value).map(x=>isNaN(x) ? words.findIndex(y=>wordsEqual(x,y))+1 : x);
-      if(guess.filter(x=> x*1>=1 && x*1<=NUMER_OF_WORDS && x*1===Math.round(x*1)).length === NUMER_OF_WORDS-1) sendMessage('guess', guess);
-      else alert(s.number_must_be_between+" 1 "+s.between_and+" "+NUMER_OF_WORDS);
-    }else{
+  if (!isHintGiver && (code.length === 0 || forceGuessMode)) { //Sending a guess
+    if ((gs.roundState === RS.ENEMY_GUESSED && gs.currentTeam === team)
+      || (gs.roundState === RS.HINT_GIVEN && gs.currentTeam !== team && gs.round > 1)) {
+      let guess = DOM.inputs.map(i => i.value).map(x => isNaN(x) ? words.findIndex(y => wordsEqual(x, y)) + 1 : x);
+      if (guess.filter(x => x * 1 >= 1 && x * 1 <= NUMER_OF_WORDS && x * 1 === Math.round(x * 1)).length === NUMER_OF_WORDS - 1) sendMessage('guess', guess);
+      else alert(s.number_must_be_between + " 1 " + s.between_and + " " + NUMER_OF_WORDS);
+    } else {
       alert(s.not_your_turn);
       return;
-    }    
-  }else if(!isHintGiver && gs.roundState === RS.START && gs.currentTeam === team) { //Sending a hint
-    sendMessage('hint', DOM.inputs.map(i=>i.value));
+    }
+  } else if (!isHintGiver && gs.roundState === RS.START && gs.currentTeam === team) { //Sending a hint
+    sendMessage('hint', DOM.inputs.map(i => i.value));
     forceGuessMode = true;
     updateDescriptions();
     modeSwapButton.value = s.hint_mode;
     isHintGiver = true;
-  }else{
+  } else {
     alert(s.not_your_turn);
     return;
   }
 
-  DOM.inputs.forEach(i=>i.value='');  
+  DOM.inputs.forEach(i => i.value = '');
 }
 
 function wordsEqual(word1, word2) {
@@ -750,28 +754,28 @@ function sendMessage(type, content) {
       type: type,
       content: content
     },
-  }); 
+  });
 }
 
 //Translate HTML elements
 function translate() {
   var allDom = document.getElementsByTagName("*");
-    for(var i =0; i < allDom.length; i++){
-      var elem = allDom[i];
-      var data = elem.dataset;
-      if(data.s) elem.innerHTML = s[data.s];
-      if(data.sInnerHTML) elem.innerHTML = s[data.sInnerHTML];
-      if(data.sValue) elem.value = s[data.sValue];
-      if(data.sPlaceholder) elem.placeholder = s[data.sPlaceholder];      
-    }
+  for (var i = 0; i < allDom.length; i++) {
+    var elem = allDom[i];
+    var data = elem.dataset;
+    if (data.s) elem.innerHTML = s[data.s];
+    if (data.sInnerHTML) elem.innerHTML = s[data.sInnerHTML];
+    if (data.sValue) elem.value = s[data.sValue];
+    if (data.sPlaceholder) elem.placeholder = s[data.sPlaceholder];
+  }
 }
 
-langButton.addEventListener("click",changeLang);
+langButton.addEventListener("click", changeLang);
 
 function changeLang() {
   //TODO GUI to choose it
-  if(lang === 'en'){
-    lang='pl';
+  if (lang === 'en') {
+    lang = 'pl';
     s = plStrings;
 
   } else {
@@ -787,7 +791,7 @@ function changeLang() {
 }
 
 function convertToWordPool(poolsList) {
-  return poolsList.map(x=>wordBank[x]).flat();
+  return poolsList.map(x => wordBank[x]).flat();
 }
 
 
@@ -800,72 +804,72 @@ const drone = new ScaleDrone(CHANNEL_ID, {
   },
 });
 
-function isDebugger(member){
+function isDebugger(member) {
   return member.authData && member.authData.user_is_from_scaledrone_debugger;
 }
 
 drone.on('open', error => {
-	 if (error) {
-	   return console.error(error);
-	 }
-	 console.log('Successfully connected to Scaledrone');
-	 
-	 const room = drone.subscribe(getRoom());
-	 room.on('open', error => {
-	   if (error) {
-	     return console.error(error);
-	   }
-	   console.log('Successfully joined room');
-	 });
-	 
-	 // List of currently online members, emitted once
-	room.on('members', m => {
-  	members = m.filter(x=>!isDebugger(x));
-    if(members.length === 1) {
+  if (error) {
+    return console.error(error);
+  }
+  console.log('Successfully connected to Scaledrone');
+
+  const room = drone.subscribe(getRoom());
+  room.on('open', error => {
+    if (error) {
+      return console.error(error);
+    }
+    console.log('Successfully joined room');
+  });
+
+  // List of currently online members, emitted once
+  room.on('members', m => {
+    members = m.filter(x => !isDebugger(x));
+    if (members.length === 1) {
       gs.received = true;
     }
-  	updateMembersDOM(); 
-	});
-	 
-	// User joined the room
-	room.on('member_join', member => {
-    if(isDebugger(member)) return;
-	  members.push(member);
-    addMessageToListDOM(s.joined_game, member); 
-    if(gs.received){
-      gs.memberData = members;
-      sendMessage('welcome', gs);  
-    }    
-	  updateMembersDOM();
-	});
-	 
-	// User left the room
-	room.on('member_leave', ({id}) => {
-    var member = getMember(id);
-    if(!member) return; //If they don't exist, it was probably the debugger
+    updateMembersDOM();
+  });
 
-    if(id === gs.hintGiver.id && !gs.useEmergencyCode){
-      addMessageToListDOM(s.left_game_with_code, member); 
+  // User joined the room
+  room.on('member_join', member => {
+    if (isDebugger(member)) return;
+    members.push(member);
+    addMessageToListDOM(s.joined_game, member);
+    if (gs.received) {
+      gs.memberData = members;
+      sendMessage('welcome', gs);
+    }
+    updateMembersDOM();
+  });
+
+  // User left the room
+  room.on('member_leave', ({ id }) => {
+    var member = getMember(id);
+    if (!member) return; //If they don't exist, it was probably the debugger
+
+    if (id === gs.hintGiver.id && !gs.useEmergencyCode) {
+      addMessageToListDOM(s.left_game_with_code, member);
       gs.roundState = RS.START;
-      addMessageToListDOM(s['time_for_hint_'+gs.currentTeam]);
+      addMessageToListDOM(s['time_for_hint_' + gs.currentTeam]);
       updateWordsDisplay();
-    } else{
-      addMessageToListDOM(s.left_game, member);   
-    }    
+    } else {
+      addMessageToListDOM(s.left_game, member);
+    }
 
     const index = members.findIndex(m => m.id === id);
     members.splice(index, 1);
-    updateMembersDOM(); 
-	});
+    updateMembersDOM();
+  });
 
-	room.on('data', (data, serverMember) => {
-	  if(DEBUG_MODE) console.log(data);
+  room.on('data', (data, serverMember) => {
+    if (DEBUG_MODE) console.log(data);
     if (serverMember) {
       let member = getMember(serverMember);
       //console.log(member);
-      switch(data.type){
+      switch (data.type) {
         case 'general': //General message to be displayed to the user
-          addMessageToListDOM(s.sends_message+': '+data.content, member); 
+          addMessageToListDOM(s.sends_message + ': ' + data.content, member);
           break;
         case 'debug': //Only used for testing
           console.log(data.content);
@@ -881,41 +885,41 @@ drone.on('open', error => {
           nextState();
           break;
         case 'guess': //Sent when a player makes a guess
-          if((gs.currentTeam === member.team && gs.roundState === 3) || (gs.currentTeam === otherTeam(member.team) && gs.roundState === 2)) {
-            addMessageToListDOM(s.sends_guess+': '+data.content, member); 
+          if ((gs.currentTeam === member.team && gs.roundState === 3) || (gs.currentTeam === otherTeam(member.team) && gs.roundState === 2)) {
+            addMessageToListDOM(s.sends_guess + ': ' + data.content, member);
             gs.guesses[member.team] = data.content;
             nextState();
-            if(isHintGiver && gs.roundState == RS.ALLY_GUESSED){
+            if (isHintGiver && gs.roundState == RS.ALLY_GUESSED) {
               isHintGiver = false;
-              sendMessage('codeReveal', {'code':code});
+              sendMessage('codeReveal', { 'code': code });
               //codeButton.text = s.draw_code; //TODO this line should be fine to remove (test though)
               code = [];
-              updateDescriptions(true);            
-              DOM.modeSwapButton.style.display = 'none';            
-            } else if(gs.useEmergencyCode){ //TODO code duplication with 'codeReveal'
-              addMessageToListDOM(s.code_was+': '+gs.emergencyCode);
+              updateDescriptions(true);
+              DOM.modeSwapButton.style.display = 'none';
+            } else if (gs.useEmergencyCode) { //TODO code duplication with 'codeReveal'
+              addMessageToListDOM(s.code_was + ': ' + gs.emergencyCode);
               gs.hintGiver = {};
               processGuesses(gs.emergencyCode);
               gs.useEmergencyCode = false;
-              nextState();            
+              nextState();
             }
           } else {
-            console.warn('Received invalid guess attempt from '+member.clientData.name+". This is very rare, but may happen if two players send a guess near simultaneously.");
+            console.warn('Received invalid guess attempt from ' + member.clientData.name + ". This is very rare, but may happen if two players send a guess near simultaneously.");
           }
-          
+
           break;
         case 'codeDrawn': //Sent when a player drawn a code
           member.codeDrawn = true;
           updateMembersDOM();
-          addMessageToListDOM(s.draws_code, member); 
-          if(member.team === team && rerollsLeft>0){
+          addMessageToListDOM(s.draws_code, member);
+          if (member.team === team && rerollsLeft > 0) {
             rerollsLeft = 0;
             addMessageToListDOM(s.rerolls_gone);
             updateRerollButton();
           }
           break;
         case 'codeReveal': //Sent when a secret code is revealed
-          addMessageToListDOM(s.reveals_code+': '+data.content.code, member); 
+          addMessageToListDOM(s.reveals_code + ': ' + data.content.code, member);
           gs.hintGiver = {};
           processGuesses(data.content.code);
           gs.useEmergencyCode = false;
@@ -928,32 +932,32 @@ drone.on('open', error => {
         case 'teamSwitch': //Sent when a player joins a team (not when they decide they'll switch next game)
           member.team = data.content;
           member.switchingTeams = false;
-          addMessageToListDOM(s['joins_'+data.content], member);
+          addMessageToListDOM(s['joins_' + data.content], member);
           updateMembersDOM();
           break;
         case 'teamSwitchIntent': //Sent when a player changes which team they'll be in next round (could be the same as now if they change twice)
-          if(data.content === member.team) member.switchingTeams = false;
+          if (data.content === member.team) member.switchingTeams = false;
           else member.switchingTeams = true;
           updateMembersDOM();
           break;
         case 'rerollUsed': //sendMessage('rerollUsed',{'wordNumber':word, 'newWord':newWord, 'team':team});
-          if(data.content.team === team && rerollsLeft>0){
+          if (data.content.team === team && rerollsLeft > 0) {
             rerollsLeft -= 1;
-            addMessageToListDOM(s.rerolls_from+' '+words[data.content.wordNumber-1].toUpperCase()+' '+s.rerolls_to+' '+data.content.newWord.toUpperCase(), member);
-            words[data.content.wordNumber-1] = data.content.newWord;            
+            addMessageToListDOM(s.rerolls_from + ' ' + words[data.content.wordNumber - 1].toUpperCase() + ' ' + s.rerolls_to + ' ' + data.content.newWord.toUpperCase(), member);
+            words[data.content.wordNumber - 1] = data.content.newWord;
             updateWordsDisplay();
             updateRerollButton();
-          } else if(data.content.team === team){
+          } else if (data.content.team === team) {
             addMessageToListDOM(s.reroll_failed, member);
           }
           break;
         case 'requestWords': //Sent when a player has just joined the game and picked a team to request that team's words
-          if(data.content === team && words.length>0){
-            sendMessage('welcomeWords', {'words':words,'team':team, 'rerolls':rerollsLeft});
+          if (data.content === team && words.length > 0) {
+            sendMessage('welcomeWords', { 'words': words, 'team': team, 'rerolls': rerollsLeft });
           }
           break;
         case 'welcomeWords': //Sent in response to requestWords; it delivers the words and amount of rerolls
-          if(data.content.team === team && words.length === 0){
+          if (data.content.team === team && words.length === 0) {
             words = data.content.words;
             updateWordsDisplay();
 
@@ -962,41 +966,41 @@ drone.on('open', error => {
           }
           break;
         case 'welcome': //Sent whenever a new player joins the game, informing them of the game state
-          if(!gs.received){
+          if (!gs.received) {
             gs = data.content;
             let memberData = gs.memberData;
             for (var i = 0; i < memberData.length; i++) {
-              getMember(memberData[i]).team      = memberData[i].team;
+              getMember(memberData[i]).team = memberData[i].team;
               getMember(memberData[i]).codeDrawn = memberData[i].codeDrawn;
             }
-            if(gs.roundState === RS.HINT_GIVEN || gs.roundState === RS.ENEMY_GUESSED){
-              addMessageToListDOM(s.current_hint+': '+stringifyHint(gs.hintHistory.last))
-            } 
+            if (gs.roundState === RS.HINT_GIVEN || gs.roundState === RS.ENEMY_GUESSED) {
+              addMessageToListDOM(s.current_hint + ': ' + stringifyHint(gs.hintHistory.last))
+            }
             updateAllUI();
           }
-                
+
           break;
         case 'emergencyCode':
           gs.emergencyCode = data.content;
           gs.useEmergencyCode = true;
           break;
         case 'wordReveal':
-          addMessageToListDOM(s.reveals_words+': '+data.content.toString().replaceAll(',', ', '), member);
-          if(member.team === team) DOM.revealButton.style.display = 'none';
+          addMessageToListDOM(s.reveals_words + ': ' + data.content.toString().replaceAll(',', ', '), member);
+          if (member.team === team) DOM.revealButton.style.display = 'none';
           else saveGame(data.content);
           break;
-        default: alert('Unkown message type received: '+data.type)
+        default: alert('Unkown message type received: ' + data.type)
 
       }
 
-	  } else {
-	    addMessageToListDOM('Server: '+data.content); 
-	 }
-});
+    } else {
+      addMessageToListDOM('Server: ' + data.content);
+    }
+  });
 
 });
 
-function beforeClosing(){
-  if(isHintGiver) sendMessage('emergencyCode',code);
+function beforeClosing() {
+  if (isHintGiver) sendMessage('emergencyCode', code);
 }
 window.onunload = beforeClosing;
